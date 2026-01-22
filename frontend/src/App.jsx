@@ -44,6 +44,7 @@ import PublicLayout from "./components/layout/PageLayout";
 import PaymentSuccess from "./pages/donation/PaymentSuccess";
 import DonationHistory from "./pages/donation/DonationHistory";
 import ChildWelfareDashboard from "./pages/ChildWelfareDepartment/ChildWelfareDashboard";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 /* ==================================================
    PROTECTED ROUTE
@@ -89,6 +90,7 @@ function App() {
         {/* ---------- AUTH ROUTES (no navbar if you want) ---------- */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ---------- PARENT ROUTES ---------- */}
         <Route

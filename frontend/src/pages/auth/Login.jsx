@@ -10,13 +10,14 @@ function Login() {
   const [error, setError] = useState("");
   const [showForgot, setShowForgot] = useState(false);
 
+
+  const [resetLink, setResetLink] = useState("");
+
   // ---------------- DUMMY USERS ----------------
   const dummyUsers = [
     { username: "parent", password: "parent123", role: "PARENT" },
     { username: "admin", password: "admin123", role: "ADMIN" },
     { username: "staff", password: "staff123", role: "STAFF" },
-
-    // ✅ CHILD WELFARE USER
     { username: "childdept", password: "child123", role: "CHILD_WELFARE" },
   ];
 
@@ -66,14 +67,16 @@ function Login() {
   // ---------------- FORGOT HANDLER ----------------
   const handleForgot = (e) => {
     e.preventDefault();
+    setError("");
+
     if (!email) {
       setError("Please enter your email");
       return;
     }
-    alert(`Reset instructions sent to ${email} (dummy)`);
-    setShowForgot(false);
-    setEmail("");
-    setError("");
+
+    // ✅ ADDED: generate dummy reset link
+    const link = `/reset-password?email=${email}`;
+    setResetLink(link);
   };
 
   // ---------------- UI ----------------
@@ -135,6 +138,7 @@ function Login() {
                   onClick={() => {
                     setShowForgot(true);
                     setError("");
+                    setResetLink("");
                   }}
                 >
                   Forgot password?
@@ -183,12 +187,21 @@ function Login() {
               </button>
             </form>
 
+            {/* ✅ ADDED: show reset link */}
+            {resetLink && (
+              <div className="alert alert-success mt-3 text-center">
+                <p className="mb-1">Password reset link:</p>
+                <a href={resetLink}>{resetLink}</a>
+              </div>
+            )}
+
             <div className="text-center mt-3">
               <button
                 className="btn btn-link"
                 onClick={() => {
                   setShowForgot(false);
                   setError("");
+                  setResetLink("");
                 }}
               >
                 Back to Login
