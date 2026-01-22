@@ -1,0 +1,19 @@
+.admin-dashboard {
+  max-width: 100%;
+}
+
+.document-card {
+  width: 180px;
+  transition: all 0.2s ease;
+}
+
+.document-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+}
+
+@media (max-width: 768px) {
+  .document-card {
+    width: 100%;
+  }
+}
