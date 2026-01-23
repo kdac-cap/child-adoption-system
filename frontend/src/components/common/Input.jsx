@@ -11,6 +11,8 @@ const Input = ({
   disabled = false,
   className = '',
   icon,
+  as = 'input',
+  rows = 3,
   ...props 
 }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,18 +34,31 @@ const Input = ({
           </div>
         )}
         
-        <input
-          type={type === 'password' && showPassword ? 'text' : type}
-          className={inputClass}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          disabled={disabled}
-          style={{ paddingLeft: icon ? '2.5rem' : '1rem' }}
-          {...props}
-        />
+        {as === 'textarea' ? (
+          <textarea
+            className={inputClass}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            rows={rows}
+            style={{ paddingLeft: icon ? '2.5rem' : '1rem' }}
+            {...props}
+          />
+        ) : (
+          <input
+            type={type === 'password' && showPassword ? 'text' : type}
+            className={inputClass}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            disabled={disabled}
+            style={{ paddingLeft: icon ? '2.5rem' : '1rem' }}
+            {...props}
+          />
+        )}
         
-        {type === 'password' && (
+        {type === 'password' && as !== 'textarea' && (
           <button
             type="button"
             className="btn btn-link position-absolute top-50 end-0 translate-middle-y me-2 p-0"
