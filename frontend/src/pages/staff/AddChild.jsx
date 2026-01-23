@@ -12,16 +12,17 @@ function AddChild() {
     description: "",
     status: "AVAILABLE"
   });
+
   const [children, setChildren] = useState([]);
   const [editingChildId, setEditingChildId] = useState(null);
-
 
   useEffect(() => {
     loadChildren();
   }, []);
 
   const loadChildren = () => {
-    const savedChildren = JSON.parse(localStorage.getItem("childrenData")) || [];
+    const savedChildren =
+      JSON.parse(localStorage.getItem("childrenData")) || [];
     setChildren(savedChildren);
   };
 
@@ -49,17 +50,16 @@ function AddChild() {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Simulate photo upload with placeholder
-      const photoUrl = `https://via.placeholder.com/200x200/${getRandomColor()}/white?text=${childData.name || 'Child'}`;
+      const imageUrl = URL.createObjectURL(file);
       setChildData({
         ...childData,
-        photo: photoUrl
+        photo: imageUrl
       });
     }
   };
 
   const getRandomColor = () => {
-    const colors = ['4CAF50', 'FF9800', '2196F3', 'E91E63', '9C27B0', 'FF5722'];
+    const colors = ["4CAF50", "FF9800", "2196F3", "E91E63", "9C27B0", "FF5722"];
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
@@ -74,7 +74,6 @@ function AddChild() {
     let updatedChildren;
 
     if (editingChildId) {
-      // UPDATE
       updatedChildren = children.map((child) =>
         child.id === editingChildId
           ? { ...child, ...childData }
@@ -82,16 +81,15 @@ function AddChild() {
       );
       alert("Child updated successfully!");
     } else {
-      // ADD
       const authUser = JSON.parse(localStorage.getItem("authUser"));
       const newChild = {
         ...childData,
         id: Date.now(),
-        addedBy: authUser.username,
+        addedBy: authUser?.username,
         addedAt: new Date().toISOString(),
         photo:
           childData.photo ||
-          `https://via.placeholder.com/200x200/${getRandomColor()}/white?text=${childData.name}`
+          `https://via.placeholder.com/300x200/${getRandomColor()}/white?text=${childData.name}`
       };
       updatedChildren = [...children, newChild];
       alert("Child added successfully!");
@@ -110,14 +108,19 @@ function AddChild() {
       description: "",
       status: "AVAILABLE"
     });
+
     setEditingChildId(null);
   };
 
-
   const handleRemoveChild = (childId) => {
     if (window.confirm("Are you sure you want to remove this child?")) {
-      const updatedChildren = children.filter(child => child.id !== childId);
-      localStorage.setItem("childrenData", JSON.stringify(updatedChildren));
+      const updatedChildren = children.filter(
+        (child) => child.id !== childId
+      );
+      localStorage.setItem(
+        "childrenData",
+        JSON.stringify(updatedChildren)
+      );
       loadChildren();
     }
   };
@@ -126,7 +129,9 @@ function AddChild() {
     <>
       <Navbar />
       <div className="container parent-dashboard-container">
-        <h3 className="text-center parent-dashboard-title ">👶 Manage Children</h3>
+        <h3 className="text-center parent-dashboard-title">
+          👶 Manage Children
+        </h3>
 
         <div className="row">
           {/* Add Child Form */}
@@ -237,25 +242,41 @@ function AddChild() {
               </div>
               <div className="card-body">
                 {children.length === 0 ? (
-                  <p className="text-center text-muted">No children added yet</p>
+                  <p className="text-center text-muted">
+                    No children added yet
+                  </p>
                 ) : (
                   <div className="row">
                     {children.map((child) => (
                       <div key={child.id} className="col-md-6 mb-3">
                         <div className="card border">
+                          {/* ✅ ONLY CSS FIX HERE */}
                           <img
                             src={child.photo}
-                            className="card-img-top"
                             alt={child.name}
-                            style={{ height: "150px", objectFit: "cover" }}
+                            style={{
+                              width: "100%",
+                              height: "200px",
+                              objectFit: "cover",
+                              objectPosition: "center",
+                              borderTopLeftRadius: "6px",
+                              borderTopRightRadius: "6px"
+                            }}
                           />
+
                           <div className="card-body p-3">
                             <h6 className="card-title">{child.name}</h6>
                             <div className="mb-2">
-                              <span className="badge bg-info me-1">Age: {child.age}</span>
-                              <span className="badge bg-warning">{child.gender}</span>
+                              <span className="badge bg-info me-1">
+                                Age: {child.age}
+                              </span>
+                              <span className="badge bg-warning">
+                                {child.gender}
+                              </span>
                             </div>
-                            <p className="card-text small">{child.description}</p>
+                            <p className="card-text small">
+                              {child.description}
+                            </p>
                             <div className="d-flex gap-2">
                               <button
                                 className="btn btn-secondary btn-sm"
@@ -266,12 +287,13 @@ function AddChild() {
 
                               <button
                                 className="btn btn-danger btn-sm"
-                                onClick={() => handleRemoveChild(child.id)}
+                                onClick={() =>
+                                  handleRemoveChild(child.id)
+                                }
                               >
                                 Remove
                               </button>
                             </div>
-
                           </div>
                         </div>
                       </div>
