@@ -3,7 +3,9 @@ import { ThemeContext } from "./ThemeContext";
 import { FaMoon, FaSun, FaBell, FaLanguage, FaSave } from "react-icons/fa";
 
 const Settings = () => {
-  const { theme, setTheme } = useState("light");
+  // FIXED LINE (ONLY CHANGE)
+  const { theme, setTheme } = useContext(ThemeContext);
+
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("en");
 
@@ -11,7 +13,8 @@ const Settings = () => {
     const savedNotifications = localStorage.getItem("notifications");
     const savedLanguage = localStorage.getItem("language");
 
-    if (savedNotifications !== null) setNotifications(savedNotifications === "true");
+    if (savedNotifications !== null)
+      setNotifications(savedNotifications === "true");
     if (savedLanguage) setLanguage(savedLanguage);
   }, []);
 
@@ -28,7 +31,9 @@ const Settings = () => {
   return (
     <div className="p-4 d-flex justify-content-center">
       <div
-        className={`card p-4 ${theme === "dark" ? "bg-dark text-light" : "bg-white"}`}
+        className={`card p-4 ${
+          theme === "dark" ? "bg-dark text-light" : "bg-white"
+        }`}
         style={{
           maxWidth: "450px",
           width: "100%",
@@ -86,7 +91,9 @@ const Settings = () => {
             <FaLanguage className="me-2" /> Language
           </label>
           <select
-            className={`form-select ${theme === "dark" ? "bg-secondary text-light" : ""}`}
+            className={`form-select ${
+              theme === "dark" ? "bg-secondary text-light" : ""
+            }`}
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           >

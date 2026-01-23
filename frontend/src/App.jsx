@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "./pages/admin/ThemeContext";
 
 // ---------- LANDING ----------
 import LandingPage from "./pages/LandingPage";
@@ -70,7 +71,7 @@ function App() {
   return (
 
 
-
+<ThemeProvider>
     <BrowserRouter>
       <Routes>
 
@@ -267,6 +268,7 @@ function App() {
 
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
