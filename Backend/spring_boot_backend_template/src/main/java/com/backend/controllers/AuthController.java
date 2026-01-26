@@ -2,6 +2,7 @@ package com.backend.controllers;
 
 import com.backend.dto.*;
 import com.backend.services.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,18 +20,19 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ApiResponse register(@RequestBody RegisterRequestDTO dto) {
+    public ApiResponse register(@Valid @RequestBody RegisterRequestDTO dto) {
         return authService.register(dto);
     }
 
     @PostMapping("/register/child-welfare")
     public ApiResponse registerChildWelfare(
-            @RequestBody ChildWelfareRegisterRequestDTO dto) {
+            @Valid @RequestBody ChildWelfareRegisterRequestDTO dto) {
         return authService.registerChildWelfare(dto);
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody LoginRequestDTO dto) {
+    public Map<String, Object> login(
+            @Valid @RequestBody LoginRequestDTO dto) {
         return authService.login(dto);
     }
 }

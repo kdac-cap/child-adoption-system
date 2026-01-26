@@ -1,5 +1,5 @@
 package com.backend.entities;
 
-public enum Gender {
-    MALE, FEMALE
+public enum Gender{
+    MALE,FEMALE,OTHER
 }
