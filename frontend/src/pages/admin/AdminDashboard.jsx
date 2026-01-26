@@ -38,72 +38,24 @@ const initializeData = () => {
       { id: 5, userId: 5, childId: 1, status: "Pending", date: "2025-12-23" }
     ]);
   }
-/* ================= AGENCIES ================= */
-if (!Array.isArray(getData("agencies"))) {
-  saveData("agencies", [
-    {
-      id: 1,
-      name: "Hope Adoption Agency",
-      registrationNo: "IND-ADP-001",
-      email: "contact@hopeadoption.org",
-      phone: "9876543210",
-      city: "Mumbai",
-      state: "Maharashtra",
-      address: "12, Marine Drive, Mumbai - 400001",
-      status: "Active",
-      establishedYear: 2010
-    },
-    {
-      id: 2,
-      name: "Bright Future Adoption Center",
-      registrationNo: "IND-ADP-002",
-      email: "info@brightfuture.org",
-      phone: "9123456780",
-      city: "Pune",
-      state: "Maharashtra",
-      address: "45, Hinjewadi Phase 2, Pune - 411057",
-      status: "Active",
-      establishedYear: 2014
-    },
-    {
-      id: 3,
-      name: "Little Angels Care",
-      registrationNo: "IND-ADP-003",
-      email: "support@littleangels.org",
-      phone: "9988776655",
-      city: "Delhi",
-      state: "Delhi",
-      address: "22, Lajpat Nagar, New Delhi - 110024",
-      status: "Inactive",
-      establishedYear: 2008
-    },
-    {
-      id: 4,
-      name: "Safe Hands Adoption Trust",
-      registrationNo: "IND-ADP-004",
-      email: "admin@safehands.org",
-      phone: "9090909090",
-      city: "Bangalore",
-      state: "Karnataka",
-      address: "88, Indiranagar, Bangalore - 560038",
-      status: "Active",
-      establishedYear: 2016
-    },
-    {
-      id: 5,
-      name: "New Life Adoption Agency",
-      registrationNo: "IND-ADP-005",
-      email: "hello@newlifeadoption.org",
-      phone: "9555444333",
-      city: "Chennai",
-      state: "Tamil Nadu",
-      address: "10, Anna Nagar, Chennai - 600040",
-      status: "Pending Verification",
-      establishedYear: 2020
-    }
-  ]);
-}
-  
+
+  /* ================= AGENCIES ================= */
+  if (!Array.isArray(getData("agencies"))) {
+    saveData("agencies", [
+      {
+        id: 1,
+        name: "Hope Adoption Agency",
+        registrationNo: "IND-ADP-001",
+        email: "contact@hopeadoption.org",
+        phone: "9876543210",
+        city: "Mumbai",
+        state: "Maharashtra",
+        address: "12, Marine Drive, Mumbai - 400001",
+        status: "Active",
+        establishedYear: 2010
+      }
+    ]);
+  }
 
   /* ================= DOCUMENTS ================= */
   if (!Array.isArray(getData("documents"))) {
@@ -112,15 +64,8 @@ if (!Array.isArray(getData("agencies"))) {
     saveData("documents", [
       { id: 1, adoptionId: 1, name: "Income_Certificate.pdf", date: "2025-12-20", fileData: dummyPdf },
       { id: 2, adoptionId: 1, name: "Address_Proof.pdf", date: "2025-12-20", fileData: dummyPdf },
-
       { id: 3, adoptionId: 2, name: "Medical_Report.pdf", date: "2025-12-21", fileData: dummyPdf },
-
-      { id: 4, adoptionId: 3, name: "Income_Certificate.pdf", date: "2025-12-22", fileData: dummyPdf },
-      { id: 5, adoptionId: 3, name: "Police_Verification.pdf", date: "2025-12-22", fileData: dummyPdf },
-
-      { id: 6, adoptionId: 4, name: "Marriage_Certificate.pdf", date: "2025-12-18", fileData: dummyPdf },
-
-      { id: 7, adoptionId: 5, name: "Residence_Proof.pdf", date: "2025-12-23", fileData: dummyPdf }
+      { id: 4, adoptionId: 3, name: "Police_Verification.pdf", date: "2025-12-22", fileData: dummyPdf }
     ]);
   }
 };
@@ -136,6 +81,9 @@ const AdminDashboard = () => {
   const [documents, setDocuments] = useState([]);
   const [stats, setStats] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
+
+  // ✅ NEW: Document Preview
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   /* ================= LOAD DATA ================= */
   useEffect(() => {
@@ -159,10 +107,9 @@ const AdminDashboard = () => {
     setStats([
       { title: "Children", value: childCount, color: "primary" },
       { title: "Pending", value: adoptions.filter(a => a.status === "Pending").length, color: "warning" },
-      { title: "Approve", value: adoptions.filter(a => a.status === "Approved").length, color: "success" },
+      { title: "Approved", value: adoptions.filter(a => a.status === "Approved").length, color: "success" },
       { title: "Users", value: userCount, color: "info" },
-      { title: "Docx", value: docCount, color: "secondary" },
-      { title: "Agency", value: docCount, color: "danger" }
+      { title: "Documents", value: docCount, color: "secondary" }
     ]);
   };
 
@@ -186,10 +133,6 @@ const AdminDashboard = () => {
     setRequests(updated);
     saveData("adoptions", updated);
     updateStats(updated, children.length, users.length, documents.length);
-
-    if (selectedRequest?.id === id) {
-      setSelectedRequest({ ...selectedRequest, status });
-    }
   };
 
   const downloadDoc = doc => {
@@ -241,25 +184,18 @@ const AdminDashboard = () => {
                     <td>{getUser(req.userId).name}</td>
                     <td>{getChild(req.childId).name}</td>
 
-                    {/* DOCUMENT LINKS */}
+                    {/* DOCUMENT PREVIEW */}
                     <td>
-                      {docs.length === 0 ? (
-                        <span className="text-muted small">No Documents</span>
-                      ) : (
-                        <div className="d-flex flex-wrap gap-2">
-                          {docs.map(doc => (
-                            <span
-                              key={doc.id}
-                              onClick={() => downloadDoc(doc)}
-                              className="badge bg-light text-primary border document-link"
-                              style={{ cursor: "pointer" }}
-                              title="Click to download"
-                            >
-                              📄 {doc.name}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                      {docs.map(doc => (
+                        <span
+                          key={doc.id}
+                          onClick={() => setPreviewDoc(doc)}
+                          className="badge bg-light text-primary border me-2"
+                          style={{ cursor: "pointer" }}
+                        >
+                          📄 {doc.name}
+                        </span>
+                      ))}
                     </td>
 
                     <td>
@@ -270,24 +206,10 @@ const AdminDashboard = () => {
 
                     <td>
                       <button
-                        className="btn btn-sm btn-primary me-2"
+                        className="btn btn-sm btn-primary"
                         onClick={() => setSelectedRequest(req)}
                       >
                         View
-                      </button>
-
-                      <button
-                        className="btn btn-sm btn-success me-2"
-                        onClick={() => updateStatus(req.id, "Approved")}
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => updateStatus(req.id, "Rejected")}
-                      >
-                        Reject
                       </button>
                     </td>
                   </tr>
@@ -299,49 +221,42 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ================= VIEW MODAL ================= */}
-      {selectedRequest && (
+      {/* ================= DOCUMENT PREVIEW MODAL ================= */}
+      {previewDoc && (
         <div className="modal show d-block bg-dark bg-opacity-50">
-          <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div className="modal-dialog modal-xl modal-dialog-centered">
             <div className="modal-content">
 
               <div className="modal-header">
-                <h5 className="modal-title">Adoption Request Details</h5>
-                <button className="btn-close" onClick={() => setSelectedRequest(null)} />
+                <h5 className="modal-title">{previewDoc.name}</h5>
+                <button className="btn-close" onClick={() => setPreviewDoc(null)} />
               </div>
 
-              <div className="modal-body">
-
-                <div className="row">
-                  <div className="col-md-6">
-                    <h6>User Information</h6>
-                    <p><b>Name:</b> {getUser(selectedRequest.userId).name}</p>
-                    <p><b>Email:</b> {getUser(selectedRequest.userId).email}</p>
-                    <p><b>Phone:</b> {getUser(selectedRequest.userId).phone}</p>
-                    <p><b>City:</b> {getUser(selectedRequest.userId).city}</p>
-                  </div>
-
-                  <div className="col-md-6">
-                    <h6>Child Information</h6>
-                    <p><b>Name:</b> {getChild(selectedRequest.childId).name}</p>
-                    <p><b>Age:</b> {getChild(selectedRequest.childId).age}</p>
-                    <p><b>Gender:</b> {getChild(selectedRequest.childId).gender}</p>
-                    <p><b>Medical:</b> {getChild(selectedRequest.childId).medical}</p>
-                  </div>
-                </div>
-
-                <hr />
-
-                <p>
-                  <b>Status:</b>{" "}
-                  <span className={`badge bg-${badgeColor(selectedRequest.status)}`}>
-                    {selectedRequest.status}
-                  </span>
-                </p>
-
-                <p><b>Applied On:</b> {selectedRequest.date}</p>
-
+              <div className="modal-body p-0">
+                <iframe
+                  src={previewDoc.fileData}
+                  title="Preview"
+                  width="100%"
+                  height="600px"
+                  style={{ border: "none" }}
+                />
               </div>
+
+              <div className="modal-footer">
+                <button
+                  className="btn btn-success"
+                  onClick={() => downloadDoc(previewDoc)}
+                >
+                  Download
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setPreviewDoc(null)}
+                >
+                  Close
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
