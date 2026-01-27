@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { toast } from 'react-toastify';
+import authService from "../../services/authService";
+import { ROLE_ROUTES } from "../../utils/apiConfig";
+import { showErrorToast, showSuccessToast } from "../../utils/errorHandler";
 
 function Login() {
   const navigate = useNavigate();
@@ -10,14 +12,6 @@ function Login() {
   const [showForgot, setShowForgot] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  const users = [
-    { username: "parent", password: "parent123", role: "PARENT", name: "Sarah Johnson" },
-    { username: "admin", password: "admin123", role: "ADMIN", name: "Michael Chen" },
-    { username: "staff", password: "staff123", role: "STAFF", name: "Emily Davis" },
-    { username: "agency", password: "agency123", role: "AGENCY", name: "Hope Agency" },
-    { username: "childdept", password: "child123", role: "CHILD_WELFARE", name: "David Wilson" },
-  ];
 
   useEffect(() => {
     const remembered = localStorage.getItem('rememberedUser');
@@ -58,45 +52,71 @@ function Login() {
     if (!validateLogin()) return;
     
     setLoading(true);
-    setTimeout(() => {
-      let user = users.find(u => u.username === formData.username && u.password === formData.password);
-      
-      if (!user) {
-        const registered = JSON.parse(localStorage.getItem("registeredUsers")) || [];
-        user = registered.find(u => u.username === formData.username && u.password === formData.password);
-      }
-
-      if (!user) {
-        setErrors({ general: "Invalid username or password" });
-        setLoading(false);
-        return;
-      }
-
-      if (rememberMe) {
-        localStorage.setItem('rememberedUser', JSON.stringify({ username: user.username }));
-      } else {
-        localStorage.removeItem('rememberedUser');
-      }
-
-      localStorage.setItem("authUser", JSON.stringify({
-        username: user.username,
-        role: user.role,
-        name: user.name
-      }));
-
-      toast.success(`Welcome back, ${user.name}!`);
-      
-      const routes = {
-        PARENT: "/parent",
-        ADMIN: "/admin", 
-        STAFF: "/staff",
-        AGENCY: "/agency",
-        CHILD_WELFARE: "/child-welfare"
+    
+    try {
+      const credentials = {
+        username: formData.username,
+        password: formData.password
       };
       
-      navigate(routes[user.role] || "/");
+      const response = await authService.login(credentials);
+      
+      if (response.token && response.user) {
+        if (rememberMe) {
+          localStorage.setItem('rememberedUser', JSON.stringify({ username: formData.username }));
+        } else {
+          localStorage.removeItem('rememberedUser');
+        }
+
+        // Store user data for ProtectedRoute
+        localStorage.setItem('authUser', JSON.stringify(response.user));
+
+        showSuccessToast(`Welcome back, ${response.user.fullName || response.user.username}!`);
+        
+        navigate(ROLE_ROUTES[response.user.role] || "/");
+      } else {
+        showErrorToast(null, "Login failed. Please try again.");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      // If backend is not available, check localStorage
+      if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+        console.log('Backend not available, checking localStorage');
+        
+        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        const user = registeredUsers.find(u => 
+          u.username === formData.username && u.password === formData.password
+        );
+        
+        if (user) {
+          if (rememberMe) {
+            localStorage.setItem('rememberedUser', JSON.stringify({ username: formData.username }));
+          } else {
+            localStorage.removeItem('rememberedUser');
+          }
+          
+          // Store auth info for ProtectedRoute
+          localStorage.setItem('authToken', 'localStorage-token-' + Date.now());
+          localStorage.setItem('authUser', JSON.stringify({
+            username: user.username,
+            role: user.role,
+            fullName: user.fullName,
+            email: user.email
+          }));
+          
+          showSuccessToast(`Welcome back, ${user.fullName || user.username}!`);
+          navigate(ROLE_ROUTES[user.role] || "/");
+        } else {
+          setErrors({ general: "Invalid username or password" });
+        }
+      } else {
+        const errorMessage = showErrorToast(error, "Invalid username or password");
+        setErrors({ general: errorMessage });
+      }
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   const handleForgot = async (e) => {
@@ -105,22 +125,12 @@ function Login() {
     
     setLoading(true);
     setTimeout(() => {
-      toast.success(`Password reset link sent to ${formData.email}`);
+      showSuccessToast(`Password reset link sent to ${formData.email}`);
       setShowForgot(false);
       setFormData(prev => ({ ...prev, email: '' }));
       setErrors({});
       setLoading(false);
     }, 1000);
-  };
-
-  const quickLogin = (username, password) => {
-    setFormData({ username, password, email: '' });
-    setTimeout(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        form.dispatchEvent(new Event('submit', { bubbles: true }));
-      }
-    }, 100);
   };
 
   return (
@@ -296,39 +306,6 @@ function Login() {
                     </div>
                   </form>
                 )}
-
-                {/* Quick Login Demo */}
-                <div className="mt-4 p-3 bg-light rounded-3">
-                  <div className="text-center mb-2">
-                    <small className="text-muted fw-semibold">Quick Demo Login</small>
-                  </div>
-                  <div className="d-flex flex-wrap gap-2 justify-content-center">
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={() => quickLogin('parent', 'parent123')}
-                      disabled={loading}
-                    >
-                      Parent
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-success btn-sm"
-                      onClick={() => quickLogin('admin', 'admin123')}
-                      disabled={loading}
-                    >
-                      Admin
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-warning btn-sm"
-                      onClick={() => quickLogin('staff', 'staff123')}
-                      disabled={loading}
-                    >
-                      Staff
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
