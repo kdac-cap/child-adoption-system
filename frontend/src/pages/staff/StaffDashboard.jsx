@@ -60,6 +60,22 @@ function StaffDashboard() {
               </div>
             </div>
           </div>
+
+          <div className="col-md-4 mb-3">
+            <div className="card shadow text-center p-3 h-100">
+              <div className="card-body">
+                <i className="fas fa-file-check fa-3x text-warning mb-3"></i>
+                <h5>📑 Verify Documents</h5>
+                <p>Review and verify submitted documents</p>
+                <button
+                  className="btn btn-warning"
+                  onClick={() => navigate("/staff/documents")}
+                >
+                  Verify
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

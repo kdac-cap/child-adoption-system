@@ -1,28 +1,36 @@
 package com.backend.controllers;
 
-import com.backend.entities.User;
+import com.backend.dto.*;
+import com.backend.services.AuthService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
-import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequiredArgsConstructor
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "http://localhost:5173"
+})
 public class AuthController {
 
-    @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> credentials) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("user", new User());
-        return response;
-    }
+    private final AuthService authService;
 
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody User user) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "User registered successfully");
-        return response;
+    public ApiResponse register(@RequestBody RegisterRequestDTO dto) {
+        return authService.register(dto);
+    }
+
+    @PostMapping("/register/child-welfare")
+    public ApiResponse registerChildWelfare(
+            @RequestBody ChildWelfareRegisterRequestDTO dto) {
+        return authService.registerChildWelfare(dto);
+    }
+
+    @PostMapping("/login")
+    public Map<String, Object> login(@RequestBody LoginRequestDTO dto) {
+        return authService.login(dto);
     }
 }

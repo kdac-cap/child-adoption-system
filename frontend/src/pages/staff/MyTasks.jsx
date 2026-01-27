@@ -1,90 +1,115 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
-
-/* ---------------------------------
-   INITIAL TASKS (MOCK DATA)
---------------------------------- */
-const initialTasks = [
-  {
-    task_id: 1,
-    title: "Verify Parent Documents",
-    description: "Check income & ID proofs",
-    status: "OPEN",
-    priority: "HIGH",
-    due_date: "2025-01-10",
-  },
-  {
-    task_id: 2,
-    title: "Home Study Visit",
-    description: "Conduct home visit",
-    status: "IN_PROGRESS",
-    priority: "MEDIUM",
-    due_date: "2025-01-15",
-  },
-];
 
 function MyTasks() {
   const [tasks, setTasks] = useState([]);
+  const navigate = useNavigate();
 
-  /* ---------------------------------
-     LOAD TASKS FROM STORAGE
-  --------------------------------- */
   useEffect(() => {
-    const storedTasks =
-      JSON.parse(localStorage.getItem("staffTasks")) || initialTasks;
-
-    localStorage.setItem("staffTasks", JSON.stringify(storedTasks));
-    setTasks(storedTasks);
+    loadTasks();
   }, []);
 
-  /* ---------------------------------
-     UPDATE TASK STATUS
-  --------------------------------- */
-  const updateStatus = (taskId, newStatus) => {
-    const updatedTasks = tasks.map((task) =>
-      task.task_id === taskId
-        ? { ...task, status: newStatus }
-        : task
-    );
+  const loadTasks = () => {
+    const applications = JSON.parse(localStorage.getItem("applications")) || [];
+    const generatedTasks = [];
 
-    setTasks(updatedTasks);
-    localStorage.setItem("staffTasks", JSON.stringify(updatedTasks));
+    applications.forEach(app => {
+      if (app.status === "PENDING_STAFF_APPROVAL") {
+        generatedTasks.push({
+          id: `review-${app.id}`,
+          title: `Review Application #${app.id}`,
+          description: `Review adoption application from ${app.parentName} for ${app.childName}`,
+          priority: "HIGH",
+          type: "REVIEW_APPLICATION",
+          applicationId: app.id,
+          dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        });
+      }
+
+      if (app.status === "DOCUMENTS_SUBMITTED") {
+        generatedTasks.push({
+          id: `verify-${app.id}`,
+          title: `Verify Documents #${app.id}`,
+          description: `Verify submitted documents for ${app.parentName}'s application`,
+          priority: "HIGH",
+          type: "VERIFY_DOCUMENTS",
+          applicationId: app.id,
+          dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        });
+      }
+
+      if (app.status === "DOCUMENTS_VERIFIED") {
+        generatedTasks.push({
+          id: `schedule-${app.id}`,
+          title: `Schedule Welfare Visit #${app.id}`,
+          description: `Schedule home visit for ${app.parentName}`,
+          priority: "MEDIUM",
+          type: "SCHEDULE_VISIT",
+          applicationId: app.id,
+          dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        });
+      }
+    });
+
+    setTasks(generatedTasks);
+  };
+
+  const handleTaskAction = (task) => {
+    if (task.type === "REVIEW_APPLICATION") {
+      navigate("/staff/applications");
+    } else if (task.type === "VERIFY_DOCUMENTS") {
+      navigate("/staff/documents");
+    } else if (task.type === "SCHEDULE_VISIT") {
+      navigate("/staff/visits");
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    return priority === "HIGH" ? "danger" : priority === "MEDIUM" ? "warning" : "info";
   };
 
   return (
     <>
       <Navbar />
-      <div className="parent-dashboard-container">
-        <h2 className="text-center parent-dashboard-title">My Tasks</h2>
+      <div className="container parent-dashboard-container">
+        <h2 className="text-center parent-dashboard-title">📋 My Tasks</h2>
 
-        {tasks.map((task) => (
-          <div
-            key={task.task_id}
-            style={{
-              border: "1px solid #ccc",
-              padding: "10px",
-              marginBottom: "10px",
-            }}
-          >
-            <p><b>Title:</b> {task.title}</p>
-            <p><b>Description:</b> {task.description}</p>
-            <p><b>Priority:</b> {task.priority}</p>
-            <p><b>Due Date:</b> {task.due_date}</p>
-            <p><b>Status:</b> {task.status}</p>
+        <div className="row">
+          {tasks.map((task) => (
+            <div key={task.id} className="col-lg-6 mb-4">
+              <div className="card shadow h-100">
+                <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0">{task.title}</h5>
+                  <span className={`badge bg-${getPriorityColor(task.priority)}`}>
+                    {task.priority}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <p className="card-text">{task.description}</p>
+                  <div className="mb-3">
+                    <small className="text-muted">
+                      <strong>Due:</strong> {task.dueDate}
+                    </small>
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleTaskAction(task)}
+                  >
+                    Take Action →
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-            <select
-              value={task.status}
-              onChange={(e) =>
-                updateStatus(task.task_id, e.target.value)
-              }
-            >
-              <option value="OPEN">OPEN</option>
-              <option value="IN_PROGRESS">IN_PROGRESS</option>
-              <option value="DONE">DONE</option>
-              <option value="BLOCKED">BLOCKED</option>
-            </select>
+        {tasks.length === 0 && (
+          <div className="alert alert-success text-center">
+            <h5>🎉 All caught up!</h5>
+            <p>You have no pending tasks at the moment.</p>
           </div>
-        ))}
+        )}
       </div>
     </>
   );

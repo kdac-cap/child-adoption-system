@@ -1,76 +1,67 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
 
-  // ---------------- DUMMY USERS ----------------
-  const dummyUsers = [
-    { username: "parent", password: "parent123", role: "PARENT" },
-    { username: "admin", password: "admin123", role: "ADMIN" },
-    { username: "staff", password: "staff123", role: "STAFF" },
-  ];
-
-  // ---------------- LOGIN HANDLER ----------------
-  const handleLogin = (e) => {
-    e.preventDefault();
-    setError("");
-
-    if (!username || !password) {
-      setError("All fields are required");
-      return;
-    }
-
-    let user = dummyUsers.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (!user) {
-      const registeredUsers =
-        JSON.parse(localStorage.getItem("registeredUsers")) || [];
-
-      user = registeredUsers.find(
-        (u) => u.username === username && u.password === password
-      );
-    }
-
-    if (!user) {
-      setError("Invalid username or password");
-      return;
-    }
-
-    localStorage.setItem(
-      "authUser",
-      JSON.stringify({
-        username: user.username,
-        role: user.role,
-      })
-    );
-
-    if (user.role === "PARENT") navigate("/parent");
-    else if (user.role === "ADMIN") navigate("/admin");
-    else if (user.role === "STAFF") navigate("/staff");
-    else if (user.role === "AGENCY") navigate("/agency");
-    else navigate("/");
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  // ---------------- FORGOT HANDLER ----------------
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    if (!formData.email || !formData.password) {
+      setError("All fields are required");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Simple: send email directly to backend
+      const loginData = {
+        email: formData.email,
+        password: formData.password
+      };
+      const response = await login(loginData);
+      const userRole = response.user?.role;
+      
+      // Navigate based on role
+      if (userRole === "PARENT") navigate("/parent");
+      else if (userRole === "ADMIN") navigate("/admin");
+      else if (userRole === "STAFF") navigate("/staff");
+      else if (userRole === "AGENCY") navigate("/agency");
+      else navigate("/");
+    } catch (error) {
+      setError(error.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleForgot = (e) => {
     e.preventDefault();
-    if (!email) {
+    if (!formData.email) {
       setError("Please enter your email");
       return;
     }
-    alert(`Reset instructions sent to ${email} (dummy)`);
+    alert(`Password reset feature will be implemented later. Contact admin for now.`);
     setShowForgot(false);
-    setEmail("");
-    setError("");
   };
 
   // ---------------- UI ----------------
@@ -104,13 +95,15 @@ function Login() {
           <>
             <form onSubmit={handleLogin}>
               <div className="mb-3">
-                <label className="form-label">Username</label>
+                <label className="form-label">Email</label>
                 <input
-                  type="text"
+                  type="email"
+                  name="email"
                   className="form-control"
-                  placeholder="Enter username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
 
@@ -118,10 +111,12 @@ function Login() {
                 <label className="form-label">Password</label>
                 <input
                   type="password"
+                  name="password"
                   className="form-control"
                   placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
 
@@ -133,13 +128,17 @@ function Login() {
                     setShowForgot(true);
                     setError("");
                   }}
+                  disabled={loading}
                 >
                   Forgot password?
                 </button>
               </div>
 
-              <button className="btn btn-primary w-100 mb-2">
-                Login
+              <button 
+                className="btn btn-primary w-100 mb-2" 
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Login"}
               </button>
             </form>
 
@@ -168,10 +167,11 @@ function Login() {
                 <label className="form-label">Email address</label>
                 <input
                   type="email"
+                  name="email"
                   className="form-control"
                   placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={handleChange}
                 />
               </div>
 

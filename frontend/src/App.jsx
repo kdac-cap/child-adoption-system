@@ -20,6 +20,7 @@ import StaffDashboard from "./pages/staff/StaffDashboard";
 import MyTasks from "./pages/staff/MyTasks";
 import StaffApplications from "./pages/staff/StaffApplications";
 import AddChild from "./pages/staff/AddChild";
+import DocumentReview from "./pages/staff/DocumentReview";
 
 // ---------- AGENCY ----------
 import AgencyDashboard from "./pages/agency/AgencyDashboard";
@@ -165,6 +166,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["STAFF", "SOCIAL_WORKER"]}>
               <AddChild />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/staff/documents"
+          element={
+            <ProtectedRoute allowedRoles={["STAFF", "SOCIAL_WORKER"]}>
+              <DocumentReview />
             </ProtectedRoute>
           }
         />

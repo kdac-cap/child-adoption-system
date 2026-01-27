@@ -1,5 +1,15 @@
 package com.backend.entities;
 
 public enum NotificationType {
-    SUCCESS, INFO, WARNING, ERROR
+    APPLICATION_UPDATE,
+    DOCUMENT_REQUEST,
+    DOCUMENT_SUBMITTED,
+    DOCUMENT_VERIFIED,
+    VISIT_SCHEDULED,
+    APPLICATION_APPROVED,
+    APPLICATION_REJECTED,
+    SUCCESS,
+    INFO,
+    WARNING,
+    ERROR
 }

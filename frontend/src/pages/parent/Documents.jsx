@@ -14,6 +14,8 @@ function Documents() {
     photographs: null
   });
 
+  const [applications, setApplications] = useState([]);
+  const [selectedAppId, setSelectedAppId] = useState(null);
   const [status, setStatus] = useState("PENDING");
   const [message, setMessage] = useState("");
 
@@ -21,26 +23,38 @@ function Documents() {
     const authUser = JSON.parse(localStorage.getItem("authUser"));
     if (!authUser) return;
 
-    const savedDocs =
-      JSON.parse(localStorage.getItem(`documents_${authUser.username}`)) || {};
+    const apps = JSON.parse(localStorage.getItem("applications")) || [];
+    const myApps = apps.filter(app => 
+      app.parentUsername === authUser.username && 
+      (app.status === "DOCUMENTS_REQUESTED" || app.status === "DOCUMENTS_SUBMITTED")
+    );
+    setApplications(myApps);
 
-    setDocuments(prev => ({
-      ...prev,
-      ...savedDocs
-    }));
-
-    setStatus(savedDocs.status || "PENDING");
+    if (myApps.length > 0) {
+      setSelectedAppId(myApps[0].id);
+    }
   }, []);
 
   const handleFileChange = (docType, file) => {
-    setDocuments(prev => ({
-      ...prev,
-      [docType]: file ? file.name : null
-    }));
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setDocuments(prev => ({
+          ...prev,
+          [docType]: reader.result
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!selectedAppId) {
+      alert("Please select an application to submit documents for");
+      return;
+    }
 
     const authUser = JSON.parse(localStorage.getItem("authUser"));
     if (!authUser) return;
@@ -49,42 +63,39 @@ function Documents() {
       ...documents,
       status: "SUBMITTED",
       submittedAt: new Date().toISOString(),
-      parentUsername: authUser.username
+      parentUsername: authUser.username,
+      applicationId: selectedAppId
     };
 
-    localStorage.setItem(
-      `documents_${authUser.username}`,
-      JSON.stringify(docData)
-    );
+    const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
+    const existingIndex = allDocs.findIndex(doc => doc.applicationId === selectedAppId);
+    
+    if (existingIndex >= 0) {
+      allDocs[existingIndex] = docData;
+    } else {
+      allDocs.push(docData);
+    }
+    localStorage.setItem("documents", JSON.stringify(allDocs));
 
-    const notifications =
-      JSON.parse(localStorage.getItem("adminNotifications")) || [];
-
-    notifications.push({
-      id: Date.now(),
-      message: `Documents submitted by ${authUser.username}`,
-      type: "info",
-      read: false,
-      timestamp: new Date().toISOString()
+    const apps = JSON.parse(localStorage.getItem("applications")) || [];
+    const updatedApps = apps.map(app => {
+      if (app.id === selectedAppId) {
+        return {
+          ...app,
+          status: "DOCUMENTS_SUBMITTED",
+          staffMessage: "Documents submitted successfully. Staff will review them soon."
+        };
+      }
+      return app;
     });
-
-    localStorage.setItem(
-      "adminNotifications",
-      JSON.stringify(notifications)
-    );
+    localStorage.setItem("applications", JSON.stringify(updatedApps));
 
     setStatus("SUBMITTED");
-    setMessage("Documents submitted successfully! Admin will review them.");
+    setMessage("Documents submitted successfully! Staff will review them.");
 
-    // ✅ AUTO REFRESH PAGE AFTER SUBMIT
     setTimeout(() => {
       window.location.reload();
     }, 500);
-  };
-
-  const handleEditResubmit = () => {
-    setStatus("PENDING");
-    setMessage("You can now edit and resubmit your documents.");
   };
 
   const documentTypes = [
@@ -113,75 +124,82 @@ function Documents() {
           </div>
         )}
 
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
-            <div className="card shadow">
-              <div className="card-header bg-primary text-white">
-                <h5 className="mb-0">Required Documents for Adoption</h5>
-                <small>
-                  Status:{" "}
-                  <span
-                    className={`badge ${
-                      status === "APPROVED"
-                        ? "bg-success"
-                        : status === "SUBMITTED"
-                        ? "bg-warning"
-                        : "bg-secondary"
-                    }`}
+        {applications.length === 0 ? (
+          <div className="alert alert-warning text-center">
+            <h5>No applications require documents at this time</h5>
+            <p>Documents will be requested by staff after your application is reviewed.</p>
+          </div>
+        ) : (
+          <div className="row justify-content-center">
+            <div className="col-lg-8">
+              <div className="card shadow mb-3">
+                <div className="card-body">
+                  <label className="form-label fw-bold">Select Application:</label>
+                  <select 
+                    className="form-select"
+                    value={selectedAppId || ""}
+                    onChange={(e) => setSelectedAppId(Number(e.target.value))}
                   >
-                    {status}
-                  </span>
-                </small>
+                    {applications.map(app => (
+                      <option key={app.id} value={app.id}>
+                        Application #{app.id} - {app.childName} ({app.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div className="card-body">
-                <form onSubmit={handleSubmit}>
-                  {documentTypes.map(doc => (
-                    <div key={doc.key} className="mb-4">
-                      <label className="form-label fw-bold">
-                        {doc.label}
-                        {doc.required && (
-                          <span className="text-danger">*</span>
-                        )}
-                      </label>
+              <div className="card shadow">
+                <div className="card-header bg-primary text-white">
+                  <h5 className="mb-0">Required Documents for Adoption</h5>
+                </div>
 
-                      <div className="input-group">
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          disabled={status !== "PENDING"}
-                          onChange={(e) =>
-                            handleFileChange(doc.key, e.target.files[0])
-                          }
-                        />
+                <div className="card-body">
+                  <form onSubmit={handleSubmit}>
+                    {documentTypes.map(doc => (
+                      <div key={doc.key} className="mb-4">
+                        <label className="form-label fw-bold">
+                          {doc.label}
+                          {doc.required && (
+                            <span className="text-danger">*</span>
+                          )}
+                        </label>
+
+                        <div className="input-group">
+                          <input
+                            type="file"
+                            className="form-control"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) =>
+                              handleFileChange(doc.key, e.target.files[0])
+                            }
+                          />
+
+                          {documents[doc.key] && (
+                            <span className="input-group-text bg-success text-white">
+                              ✓
+                            </span>
+                          )}
+                        </div>
 
                         {documents[doc.key] && (
-                          <span className="input-group-text bg-success text-white">
-                            ✓
-                          </span>
+                          <small className="text-success">
+                            ✓ File uploaded
+                          </small>
                         )}
                       </div>
+                    ))}
 
-                      {documents[doc.key] && (
-                        <small className="text-success">
-                          Uploaded: {documents[doc.key]}
-                        </small>
-                      )}
+                    <div className="alert alert-info">
+                      <h6>📋 Document Guidelines:</h6>
+                      <ul className="mb-0">
+                        <li>All documents must be clear and legible</li>
+                        <li>Accepted formats: PDF, JPG, JPEG, PNG</li>
+                        <li>Maximum file size: 5MB per document</li>
+                        <li>Documents should be recent (within 6 months)</li>
+                      </ul>
                     </div>
-                  ))}
 
-                  <div className="alert alert-info">
-                    <h6>📋 Document Guidelines:</h6>
-                    <ul className="mb-0">
-                      <li>All documents must be clear and legible</li>
-                      <li>Accepted formats: PDF, JPG, JPEG, PNG</li>
-                      <li>Maximum file size: 5MB per document</li>
-                      <li>Documents should be recent (within 6 months)</li>
-                    </ul>
-                  </div>
-
-                  {status === "PENDING" && (
                     <div className="text-center">
                       <button
                         type="submit"
@@ -191,36 +209,12 @@ function Documents() {
                         Submit All Documents
                       </button>
                     </div>
-                  )}
-
-                  {status === "SUBMITTED" && (
-                    <>
-                      <div className="alert alert-warning text-center">
-                        ⏳ Documents submitted and under admin review
-                      </div>
-
-                      <div className="text-center">
-                        <button
-                          type="button"
-                          className="btn btn-outline-primary"
-                          onClick={handleEditResubmit}
-                        >
-                          Edit & Resubmit Documents
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  {status === "APPROVED" && (
-                    <div className="alert alert-success text-center">
-                      ✅ Documents approved! You may proceed with adoption.
-                    </div>
-                  )}
-                </form>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );

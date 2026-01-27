@@ -129,7 +129,7 @@ function About() {
               <div className="col-sm-6 col-md-3 mb-3">
                 <div className="card border-0 shadow-sm h-100 text-center">
                   <div className="card-body">
-                    <img src="/Boys.jpg" alt="Abhay" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
+                    <img src="/Abhay.png" alt="Abhay" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
                     <h6 className="fw-bold">Abhay</h6>
                     <p className="text-muted small mb-1">Developer</p>
                     <p className="text-muted small">9966554433</p>
@@ -139,7 +139,7 @@ function About() {
               <div className="col-sm-6 col-md-3 mb-3">
                 <div className="card border-0 shadow-sm h-100 text-center">
                   <div className="card-body">
-                    <img src="/Boys.jpg" alt="Pavan" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
+                    <img src="/Pavan.jpeg" alt="Pavan" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
                     <h6 className="fw-bold">Pavan</h6>
                     <p className="text-muted small mb-1">Developer</p>
                     <p className="text-muted small">9966554433</p>
@@ -149,7 +149,7 @@ function About() {
               <div className="col-sm-6 col-md-3 mb-3">
                 <div className="card border-0 shadow-sm h-100 text-center">
                   <div className="card-body">
-                    <img src="/girls.jpg" alt="Bhakti" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
+                    <img src="/Bhakti.jpg" alt="Bhakti" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
                     <h6 className="fw-bold">Bhakti</h6>
                     <p className="text-muted small mb-1">Developer</p>
                     <p className="text-muted small">9966554433</p>
@@ -159,7 +159,7 @@ function About() {
               <div className="col-sm-6 col-md-3 mb-3">
                 <div className="card border-0 shadow-sm h-100 text-center">
                   <div className="card-body">
-                    <img src="/girls.jpg" alt="Akansha" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
+                    <img src="/Akanksha.png" alt="Akansha" className="rounded-circle mb-3" style={{ width: "80px", height: "80px", objectFit: "cover" }} />
                     <h6 className="fw-bold">Akansha</h6>
                     <p className="text-muted small mb-1">Developer</p>
                     <p className="text-muted small">9966554433</p>

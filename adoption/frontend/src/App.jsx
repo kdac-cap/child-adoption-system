@@ -1,4 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+
+import TestIntegration from "./components/TestIntegration";
 
 // ---------- LANDING ----------
 import LandingPage from "./pages/LandingPage";
@@ -46,13 +49,13 @@ import PublicLayout from "./components/layout/PageLayout";
    PROTECTED ROUTE
 ================================================== */
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const authUser = JSON.parse(localStorage.getItem("authUser"));
+  const { isAuthenticated, user } = useAuth();
 
-  if (!authUser) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(authUser.role)) {
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/login" replace />;
   }
 
@@ -64,10 +67,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 ================================================== */
 function App() {
   return (
-
-    
-
-    <BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
       <Routes>
 
         {/* ---------- PUBLIC ROUTES ---------- */}
@@ -84,6 +85,7 @@ function App() {
         {/* ---------- AUTH ROUTES (no navbar if you want) ---------- */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/test" element={<TestIntegration />} />
 
         {/* ---------- PARENT ROUTES ---------- */}
         <Route
@@ -231,6 +233,7 @@ function App() {
 
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 
