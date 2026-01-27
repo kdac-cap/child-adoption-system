@@ -9,9 +9,6 @@ import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     List<Application> findByParent(Parent parent);
+    List<Application> findByParentId(Long parentId);
     List<Application> findByStatus(ApplicationStatus status);
-    
-
-
 }
-

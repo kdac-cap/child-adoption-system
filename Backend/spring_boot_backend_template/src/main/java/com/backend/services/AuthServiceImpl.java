@@ -2,6 +2,7 @@ package com.backend.services;
 
 import com.backend.daos.UserRepository;
 import com.backend.daos.ParentRepository;
+import com.backend.daos.StaffRepository;
 import com.backend.dto.*;
 import com.backend.entities.*;
 import com.backend.security.JwtUtil;
@@ -20,6 +21,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepo;
     private final ParentRepository parentRepo;
+    private final StaffRepository staffRepo;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authManager;
     private final JwtUtil jwtUtil;
@@ -47,7 +49,25 @@ public class AuthServiceImpl implements AuthService {
         if (dto.getRole() == UserRole.PARENT) {
             Parent parent = new Parent();
             parent.setUser(savedUser);
+            parent.setMaritalStatus(dto.getMaritalStatus());
+            parent.setOccupation(dto.getOccupation());
+            parent.setAnnualIncome(dto.getAnnualIncome());
+            parent.setCity(dto.getCity());
+            parent.setState(dto.getState());
+            parent.setPostalCode(dto.getPostalCode());
             parentRepo.save(parent);
+        }
+        
+        // Create Staff profile if role is STAFF or CHILD_WELFARE
+        if (dto.getRole() == UserRole.STAFF || dto.getRole() == UserRole.CHILD_WELFARE) {
+            Staff staff = new Staff();
+            staff.setUser(savedUser);
+            staff.setAgencyName(dto.getAgencyName() != null ? dto.getAgencyName() : "Default Agency");
+            staff.setAgencyLicense(dto.getAgencyLicense() != null ? dto.getAgencyLicense() : "LIC-" + System.currentTimeMillis());
+            staff.setDesignation(dto.getDesignation());
+            staff.setQualification(dto.getQualification());
+            staff.setExperience(dto.getExperience());
+            staffRepo.save(staff);
         }
         
         return new ApiResponse("Successfully registered as " + dto.getRole(), true);
@@ -86,15 +106,32 @@ public class AuthServiceImpl implements AuthService {
         String token = jwtUtil.createToken(auth);
         User user = userRepo.findByEmail(loginField).orElse(userRepo.findByUsername(loginField).orElseThrow());
 
+        // Get parent or staff ID if applicable
+        Long parentId = null;
+        Long staffId = null;
+        
+        if (user.getRole() == UserRole.PARENT) {
+            parentId = parentRepo.findByUserId(user.getId())
+                .map(Parent::getId)
+                .orElse(null);
+        } else if (user.getRole() == UserRole.STAFF) {
+            staffId = staffRepo.findByUserId(user.getId())
+                .map(Staff::getId)
+                .orElse(null);
+        }
+
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("id", user.getId());
+        userMap.put("username", user.getUsername());
+        userMap.put("role", user.getRole());
+        userMap.put("email", user.getEmail());
+        userMap.put("fullName", user.getFullName());
+        if (parentId != null) userMap.put("parentId", parentId);
+        if (staffId != null) userMap.put("staffId", staffId);
+
         return Map.of(
                 "token", token,
-                "user", Map.of(
-                    "username", user.getUsername(),
-                    "role", user.getRole(),
-                    "userId", user.getId(),
-                    "email", user.getEmail(),
-                    "fullName", user.getFullName()
-                )
+                "user", userMap
         );
     }
 }

@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import Navbar from "../../components/layout/Navbar";
+import documentService from "../../services/documentService";
+import applicationService from "../../services/applicationService";
+import { showSuccessToast, showErrorToast } from "../../utils/errorHandler";
 
 function DocumentReview() {
   const [applications, setApplications] = useState([]);
@@ -7,35 +10,70 @@ function DocumentReview() {
   const [documents, setDocuments] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [currentDoc, setCurrentDoc] = useState({ name: "", url: "", type: "" });
-  const [docStatuses, setDocStatuses] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadApplicationsWithDocuments();
   }, []);
 
-  const loadApplicationsWithDocuments = () => {
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    const docsSubmitted = apps.filter(app => 
-      app.status === "DOCUMENTS_SUBMITTED" || app.status === "DOCUMENTS_VERIFIED"
-    );
-    setApplications(docsSubmitted);
+  const loadApplicationsWithDocuments = async () => {
+    try {
+      setLoading(true);
+      
+      // Try backend first
+      try {
+        const apps = await applicationService.getAllApplications();
+        const docsSubmitted = apps.filter(app => 
+          app.status === "DOCUMENTS_SUBMITTED" || app.status === "DOCUMENTS_VERIFIED"
+        );
+        if (docsSubmitted.length > 0) {
+          setApplications(docsSubmitted);
+          return;
+        }
+      } catch (backendError) {
+        console.log('Backend fetch failed, using localStorage:', backendError);
+      }
+      
+      // Fallback to localStorage
+      const apps = JSON.parse(localStorage.getItem("applications")) || [];
+      const docsSubmitted = apps.filter(app => 
+        app.status === "DOCUMENTS_SUBMITTED" || app.status === "DOCUMENTS_VERIFIED"
+      );
+      setApplications(docsSubmitted);
+    } catch (error) {
+      console.error('Error loading applications:', error);
+      showErrorToast(error, "Failed to load applications");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const viewDocuments = (app) => {
-    setSelectedApp(app);
-    const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
-    const appDocs = allDocs.find(doc => doc.applicationId === app.id);
-    setDocuments(appDocs);
-    
-    // Initialize document statuses
-    if (appDocs) {
-      const statuses = {};
-      Object.keys(appDocs).forEach(key => {
-        if (appDocs[key] && key !== 'status' && key !== 'submittedAt' && key !== 'parentUsername' && key !== 'applicationId') {
-          statuses[key] = appDocs[`${key}Status`] || 'pending';
+  const viewDocuments = async (app) => {
+    try {
+      setSelectedApp(app);
+      
+      // Try to fetch from backend first
+      try {
+        const appDocs = await documentService.getDocumentByApplication(app.id);
+        if (appDocs) {
+          setDocuments(appDocs);
+          return;
         }
-      });
-      setDocStatuses(statuses);
+      } catch (backendError) {
+        console.log('Backend fetch failed, trying localStorage:', backendError);
+      }
+      
+      // Fallback to localStorage if backend fails
+      const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
+      const appDocs = allDocs.find(doc => doc.applicationId === app.id);
+      if (appDocs) {
+        setDocuments(appDocs);
+      } else {
+        showErrorToast(null, "No documents found for this application");
+      }
+    } catch (error) {
+      console.error('Error loading documents:', error);
+      showErrorToast(error, "Failed to load documents");
     }
   };
 
@@ -44,7 +82,7 @@ function DocumentReview() {
       setCurrentDoc({ name: docName, url: docUrl, type: docType });
       setShowModal(true);
     } else {
-      alert("Document not available");
+      showErrorToast(null, "Document not available");
     }
   };
 
@@ -53,80 +91,94 @@ function DocumentReview() {
     setCurrentDoc({ name: "", url: "", type: "" });
   };
 
-  const verifyDocument = (docType, approved) => {
-    const newStatus = approved ? 'verified' : 'rejected';
-    setDocStatuses(prev => ({
-      ...prev,
-      [docType]: newStatus
-    }));
-
-    // Update in localStorage
-    const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
-    const updatedDocs = allDocs.map(doc => {
-      if (doc.applicationId === selectedApp.id) {
-        return {
-          ...doc,
-          [`${docType}Status`]: newStatus
-        };
-      }
-      return doc;
-    });
-    localStorage.setItem("documents", JSON.stringify(updatedDocs));
-
-    // If rejected, notify parent
-    if (!approved) {
-      const parentNotifications = JSON.parse(localStorage.getItem("parentNotifications")) || [];
-      parentNotifications.push({
-        id: Date.now(),
-        message: `Document "${docType}" was rejected. Please resubmit for application #${selectedApp.id}`,
-        type: "warning",
-        read: false,
-        parentUsername: selectedApp.parentUsername,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem("parentNotifications", JSON.stringify(parentNotifications));
-      alert(`Document rejected. Parent has been notified to resubmit.`);
-    } else {
-      alert(`Document verified successfully!`);
-    }
-  };
-
-  const finalizeVerification = () => {
-    const allVerified = Object.values(docStatuses).every(status => status === 'verified');
-    
-    if (!allVerified) {
-      alert("Please verify all documents before finalizing.");
+  const finalizeVerification = async () => {
+    if (!documents) {
+      showErrorToast(null, "No documents to verify");
       return;
     }
 
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    const updatedApps = apps.map(app => {
-      if (app.id === selectedApp.id) {
-        return {
-          ...app,
-          status: "DOCUMENTS_VERIFIED",
-          staffMessage: "All documents verified successfully. Welfare visit will be scheduled soon."
-        };
+    try {
+      // Try backend first
+      if (documents.id) {
+        await documentService.verifyDocuments(documents.id, "VERIFIED", "All documents verified successfully");
+      } else {
+        // Fallback to localStorage
+        const apps = JSON.parse(localStorage.getItem("applications")) || [];
+        const updatedApps = apps.map(app => {
+          if (app.id === selectedApp.id) {
+            return {
+              ...app,
+              status: "DOCUMENTS_VERIFIED",
+              staffMessage: "All documents verified successfully. Welfare visit will be scheduled soon."
+            };
+          }
+          return app;
+        });
+        localStorage.setItem("applications", JSON.stringify(updatedApps));
+
+        // Update documents in localStorage
+        const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
+        const updatedDocs = allDocs.map(doc => {
+          if (doc.applicationId === selectedApp.id) {
+            return { ...doc, status: "VERIFIED" };
+          }
+          return doc;
+        });
+        localStorage.setItem("documents", JSON.stringify(updatedDocs));
       }
-      return app;
-    });
-    localStorage.setItem("applications", JSON.stringify(updatedApps));
+      
+      showSuccessToast("All documents verified! Application moved to next stage.");
+      setSelectedApp(null);
+      setDocuments(null);
+      loadApplicationsWithDocuments();
+    } catch (error) {
+      console.error('Verification error:', error);
+      showErrorToast(error, "Failed to verify documents");
+    }
+  };
 
-    const parentNotifications = JSON.parse(localStorage.getItem("parentNotifications")) || [];
-    parentNotifications.push({
-      id: Date.now(),
-      message: `All documents verified for ${selectedApp.childName} adoption. Welfare visit will be scheduled soon.`,
-      type: "success",
-      read: false,
-      parentUsername: selectedApp.parentUsername,
-      timestamp: new Date().toISOString()
-    });
-    localStorage.setItem("parentNotifications", JSON.stringify(parentNotifications));
+  const rejectDocuments = async () => {
+    const reason = prompt("Enter rejection reason:");
+    if (!reason) return;
 
-    alert("All documents verified! Application moved to next stage.");
-    setSelectedApp(null);
-    setDocuments(null);
-    loadApplicationsWithDocuments();
+    try {
+      // Try backend first
+      if (documents && documents.id) {
+        await documentService.verifyDocuments(documents.id, "REJECTED", reason);
+      } else {
+        // Fallback to localStorage
+        const apps = JSON.parse(localStorage.getItem("applications")) || [];
+        const updatedApps = apps.map(app => {
+          if (app.id === selectedApp.id) {
+            return {
+              ...app,
+              status: "DOCUMENTS_REQUESTED",
+              staffMessage: reason
+            };
+          }
+          return app;
+        });
+        localStorage.setItem("applications", JSON.stringify(updatedApps));
+
+        // Update documents in localStorage
+        const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
+        const updatedDocs = allDocs.map(doc => {
+          if (doc.applicationId === selectedApp.id) {
+            return { ...doc, status: "REJECTED" };
+          }
+          return doc;
+        });
+        localStorage.setItem("documents", JSON.stringify(updatedDocs));
+      }
+      
+      showSuccessToast("Documents rejected. Parent has been notified.");
+      setSelectedApp(null);
+      setDocuments(null);
+      loadApplicationsWithDocuments();
+    } catch (error) {
+      console.error('Rejection error:', error);
+      showErrorToast(error, "Failed to reject documents");
+    }
   };
 
   const documentTypes = [
@@ -139,6 +191,17 @@ function DocumentReview() {
     { key: "policeVerification", label: "Police Verification" },
     { key: "photographs", label: "Photographs" }
   ];
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="text-center p-5">
+          <div className="spinner-border"></div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -199,13 +262,13 @@ function DocumentReview() {
                           <div className="border p-3 rounded">
                             <div className="d-flex justify-content-between align-items-center mb-2">
                               <strong>{docType.label}</strong>
-                              {docStatuses[docType.key] === 'verified' && (
+                              {(documents.status === 'VERIFIED' || documents.status === 'APPROVED') && (
                                 <span className="badge bg-success">✓ Verified</span>
                               )}
-                              {docStatuses[docType.key] === 'rejected' && (
+                              {documents.status === 'REJECTED' && (
                                 <span className="badge bg-danger">✗ Rejected</span>
                               )}
-                              {docStatuses[docType.key] === 'pending' && (
+                              {(documents.status === 'PENDING' || documents.status === 'SUBMITTED' || !documents.status) && (
                                 <span className="badge bg-warning">⏳ Pending</span>
                               )}
                             </div>
@@ -216,22 +279,6 @@ function DocumentReview() {
                               >
                                 Open Document
                               </button>
-                              {docStatuses[docType.key] !== 'verified' && (
-                                <button 
-                                  className="btn btn-sm btn-success" 
-                                  onClick={() => verifyDocument(docType.key, true)}
-                                >
-                                  ✓ Verify
-                                </button>
-                              )}
-                              {docStatuses[docType.key] !== 'rejected' && (
-                                <button 
-                                  className="btn btn-sm btn-danger" 
-                                  onClick={() => verifyDocument(docType.key, false)}
-                                >
-                                  ✗ Reject
-                                </button>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -240,12 +287,22 @@ function DocumentReview() {
                   </div>
 
                   <div className="d-flex gap-2 justify-content-center">
-                    <button
-                      className="btn btn-success btn-lg"
-                      onClick={finalizeVerification}
-                    >
-                      Finalize Verification
-                    </button>
+                    {(documents.status !== 'VERIFIED' && documents.status !== 'APPROVED') && (
+                      <>
+                        <button
+                          className="btn btn-success btn-lg"
+                          onClick={finalizeVerification}
+                        >
+                          ✓ Approve All Documents
+                        </button>
+                        <button
+                          className="btn btn-danger btn-lg"
+                          onClick={rejectDocuments}
+                        >
+                          ✗ Reject Documents
+                        </button>
+                      </>
+                    )}
                     <button
                       className="btn btn-secondary"
                       onClick={() => {
@@ -295,24 +352,6 @@ function DocumentReview() {
                   )}
                 </div>
                 <div className="modal-footer">
-                  <button 
-                    className="btn btn-success" 
-                    onClick={() => {
-                      verifyDocument(currentDoc.type, true);
-                      closeModal();
-                    }}
-                  >
-                    ✓ Verify This Document
-                  </button>
-                  <button 
-                    className="btn btn-danger" 
-                    onClick={() => {
-                      verifyDocument(currentDoc.type, false);
-                      closeModal();
-                    }}
-                  >
-                    ✗ Reject This Document
-                  </button>
                   <button className="btn btn-secondary" onClick={closeModal}>
                     Close
                   </button>

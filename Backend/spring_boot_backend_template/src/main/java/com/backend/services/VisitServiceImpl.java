@@ -27,6 +27,7 @@ public class VisitServiceImpl implements VisitService {
     private final ChildRepository childRepo;
     private final UserRepository userRepo;
     private final NotificationVisitRepository notificationVisitRepo;
+    private final AuditLogService auditLogService;
 
     @Override
     public VisitResponseDTO scheduleVisit(VisitRequestDTO dto) {
@@ -54,6 +55,15 @@ public class VisitServiceImpl implements VisitService {
             null,
             parent
         ));
+        
+        auditLogService.logAction(
+            "VISIT_SCHEDULED",
+            "Visit",
+            visit.getId(),
+            "Child Welfare Department",
+            null,
+            "Visit scheduled for " + child.getName() + " on " + dto.getVisitDate()
+        );
 
         return new VisitResponseDTO(
             visit.getId(),
@@ -78,6 +88,15 @@ public class VisitServiceImpl implements VisitService {
             null,
             visit.getParent()
         ));
+        
+        auditLogService.logAction(
+            "VISIT_CANCELLED",
+            "Visit",
+            visitId,
+            "Child Welfare Department",
+            null,
+            "Visit cancelled for " + visit.getChild().getName()
+        );
 
         visitRepo.delete(visit);
     }

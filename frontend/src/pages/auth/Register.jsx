@@ -20,6 +20,7 @@ function Register() {
     { value: "PARENT", label: "Prospective Parent" },
     { value: "AGENCY", label: "Adoption Agency" },
     { value: "STAFF", label: "Staff Member" },
+    { value: "ADMIN", label: "Administrator" },
     { value: "CHILD_WELFARE", label: "Child Welfare Department" }
   ];
 
@@ -125,6 +126,24 @@ function Register() {
         phone: formData.phone,
         role: role
       };
+
+      // Add role-specific fields
+      if (role === 'PARENT') {
+        registrationData.maritalStatus = formData.marital_status?.toUpperCase();
+        registrationData.occupation = formData.occupation;
+        registrationData.annualIncome = formData.annual_income;
+        registrationData.city = formData.city;
+        registrationData.state = formData.state;
+        registrationData.postalCode = formData.postal_code;
+      }
+
+      if (role === 'STAFF') {
+        registrationData.agencyName = formData.agency_name;
+        registrationData.agencyLicense = formData.license_number || 'LIC-' + Date.now();
+        registrationData.designation = formData.designation;
+        registrationData.qualification = formData.qualification;
+        registrationData.experience = formData.experience;
+      }
 
       let response;
       if (role === 'CHILD_WELFARE') {
