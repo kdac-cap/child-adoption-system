@@ -169,22 +169,133 @@ function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-dark text-white py-4">
+      <footer className="bg-dark text-light py-5">
         <div className="container">
           <div className="row">
-            <div className="col-md-6">
-              <h5>Hope Adoption Center</h5>
-              <p className="text-muted">
-                Creating families, changing lives, one adoption at a time.
+            <div className="col-lg-4 mb-4">
+              <h4 className="text-warning fw-bold mb-3">
+                <i className="fas fa-heart me-2"></i>
+                Hope Adoption Center
+              </h4>
+              <p className="text-light mb-3">
+                Creating families, changing lives, one adoption at a time. 
+                We are committed to providing loving homes for children in need.
               </p>
+              <div className="d-flex gap-3">
+                <a href="#" className="text-light fs-4 hover-warning">
+                  <i className="fab fa-facebook"></i>
+                </a>
+                <a href="#" className="text-light fs-4 hover-warning">
+                  <i className="fab fa-twitter"></i>
+                </a>
+                <a href="#" className="text-light fs-4 hover-warning">
+                  <i className="fab fa-instagram"></i>
+                </a>
+                <a href="#" className="text-light fs-4 hover-warning">
+                  <i className="fab fa-linkedin"></i>
+                </a>
+              </div>
             </div>
-            <div className="col-md-6 text-md-end">
+            
+            <div className="col-lg-2 col-md-6 mb-4">
+              <h6 className="text-warning fw-bold mb-3">Quick Links</h6>
+              <ul className="list-unstyled">
+                <li className="mb-2">
+                  <a href="/about" className="text-light text-decoration-none hover-warning">
+                    <i className="fas fa-chevron-right me-2 small"></i>About Us
+                  </a>
+                </li>
+                <li className="mb-2">
+                  <a href="/testimonials" className="text-light text-decoration-none hover-warning">
+                    <i className="fas fa-chevron-right me-2 small"></i>Testimonials
+                  </a>
+                </li>
+                <li className="mb-2">
+                  <a href="/donate" className="text-light text-decoration-none hover-warning">
+                    <i className="fas fa-chevron-right me-2 small"></i>Donate
+                  </a>
+                </li>
+                <li className="mb-2">
+                  <a href="/register" className="text-light text-decoration-none hover-warning">
+                    <i className="fas fa-chevron-right me-2 small"></i>Register
+                  </a>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="col-lg-3 col-md-6 mb-4">
+              <h6 className="text-warning fw-bold mb-3">Services</h6>
+              <ul className="list-unstyled">
+                <li className="mb-2">
+                  <span className="text-light">
+                    <i className="fas fa-check me-2 text-success"></i>Child Placement
+                  </span>
+                </li>
+                <li className="mb-2">
+                  <span className="text-light">
+                    <i className="fas fa-check me-2 text-success"></i>Family Counseling
+                  </span>
+                </li>
+                <li className="mb-2">
+                  <span className="text-light">
+                    <i className="fas fa-check me-2 text-success"></i>Legal Support
+                  </span>
+                </li>
+                <li className="mb-2">
+                  <span className="text-light">
+                    <i className="fas fa-check me-2 text-success"></i>Post-Adoption Care
+                  </span>
+                </li>
+              </ul>
+            </div>
+            
+            <div className="col-lg-3 mb-4">
+              <h6 className="text-warning fw-bold mb-3">Contact Info</h6>
+              <div className="mb-2">
+                <i className="fas fa-map-marker-alt text-warning me-2"></i>
+                <span className="text-light">Mumbai, Maharashtra, India</span>
+              </div>
+              <div className="mb-2">
+                <i className="fas fa-phone text-warning me-2"></i>
+                <a href="tel:+919876543210" className="text-light text-decoration-none hover-warning">
+                  +91 9876543210
+                </a>
+              </div>
+              <div className="mb-2">
+                <i className="fas fa-envelope text-warning me-2"></i>
+                <a href="mailto:info@hopeadoption.org" className="text-light text-decoration-none hover-warning">
+                  info@hopeadoption.org
+                </a>
+              </div>
+              <div className="mb-2">
+                <i className="fas fa-clock text-warning me-2"></i>
+                <span className="text-light">24/7 Support Available</span>
+              </div>
+            </div>
+          </div>
+          
+          <hr className="border-secondary my-4" />
+          
+          <div className="row align-items-center">
+            <div className="col-md-6">
               <p className="text-muted mb-0">
                 © 2024 Hope Adoption Center. All rights reserved.
               </p>
             </div>
+            <div className="col-md-6 text-md-end">
+              <a href="#" className="text-muted text-decoration-none me-3 hover-warning">Privacy Policy</a>
+              <a href="#" className="text-muted text-decoration-none me-3 hover-warning">Terms of Service</a>
+              <a href="#" className="text-muted text-decoration-none hover-warning">Support</a>
+            </div>
           </div>
         </div>
+        
+        <style jsx>{`
+          .hover-warning:hover {
+            color: #ffc107 !important;
+            transition: color 0.3s ease;
+          }
+        `}</style>
       </footer>
     </div>
   );

@@ -5,6 +5,8 @@ import Input from "../../components/common/Input";
 import Select from "../../components/common/Select";
 import Button from "../../components/common/Button";
 import { validateForm, validationRules } from "../../utils/validators";
+import authService from "../../services/authService";
+import { showErrorToast, showSuccessToast } from "../../utils/errorHandler";
 
 function Register() {
   const navigate = useNavigate();
@@ -113,31 +115,102 @@ function Register() {
 
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const users = JSON.parse(localStorage.getItem("registeredUsers")) || [];
-      
-      // Check if username already exists
-      const existingUser = users.find(u => u.username === formData.username);
-      if (existingUser) {
-        setErrors({ username: "Username already exists" });
-        setLoading(false);
-        return;
+    try {
+      // Prepare data for backend
+      const registrationData = {
+        fullName: formData.full_name,
+        username: formData.username,
+        password: formData.password,
+        email: formData.email,
+        phone: formData.phone,
+        role: role
+      };
+
+      let response;
+      if (role === 'CHILD_WELFARE') {
+        // Use child welfare specific endpoint
+        const childWelfareData = {
+          ...registrationData,
+          departmentName: formData.department_name,
+          employeeId: formData.employee_id,
+          officeLocation: formData.office_location
+        };
+        response = await authService.registerChildWelfare(childWelfareData);
+      } else {
+        response = await authService.register(registrationData);
       }
 
-      users.push({
-        role,
-        ...formData,
-        id: Date.now(),
-        createdAt: new Date().toISOString()
-      });
-
-      localStorage.setItem("registeredUsers", JSON.stringify(users));
+      if (response && response.success) {
+        showSuccessToast("Registration successful! Please login with your credentials.");
+        navigate("/login");
+      } else {
+        showErrorToast(null, response?.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
       
-      toast.success("Registration successful! Please login with your credentials.");
-      navigate("/login");
+      // If backend is not available, store in localStorage as fallback
+      if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+        console.log('Backend not available, using localStorage fallback');
+        
+        // Check for existing users in localStorage
+        const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        
+        // Check for duplicate username or email
+        const duplicateUser = existingUsers.find(u => 
+          u.username === formData.username || u.email === formData.email
+        );
+        
+        if (duplicateUser) {
+          if (duplicateUser.username === formData.username) {
+            setErrors({ username: "Username already exists" });
+          } else {
+            setErrors({ email: "Email already exists" });
+          }
+          setLoading(false);
+          return;
+        }
+        
+        // Save user to localStorage
+        const newUser = {
+          id: Date.now(),
+          fullName: formData.full_name,
+          username: formData.username,
+          password: formData.password, // In real app, this would be hashed
+          email: formData.email,
+          phone: formData.phone,
+          role: role,
+          createdAt: new Date().toISOString(),
+          // Add role-specific data
+          ...(role === 'CHILD_WELFARE' && {
+            departmentName: formData.department_name,
+            employeeId: formData.employee_id,
+            officeLocation: formData.office_location
+          })
+        };
+        
+        existingUsers.push(newUser);
+        localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
+        
+        showSuccessToast("Registration successful! Please login with your credentials.");
+        navigate("/login");
+      } else {
+        // Handle other API errors
+        if (error.response?.data?.message) {
+          if (error.response.data.message.includes('Username already exists')) {
+            setErrors({ username: "Username already exists" });
+          } else if (error.response.data.message.includes('Email already exists')) {
+            setErrors({ email: "Email already exists" });
+          } else {
+            showErrorToast(error, "Registration failed. Please try again.");
+          }
+        } else {
+          showErrorToast(error, "Registration failed. Please try again.");
+        }
+      }
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
