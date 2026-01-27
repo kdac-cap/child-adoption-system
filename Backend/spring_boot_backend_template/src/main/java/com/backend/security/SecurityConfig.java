@@ -47,31 +47,27 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
 
-                // 🌍 PUBLIC ENDPOINTS
                 .requestMatchers(
                     "/api/auth/login",
                     "/api/auth/register",
                     "/api/auth/register/child-welfare",
-
-                    // ✅ SWAGGER (ADD THESE)
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/v3/api-docs/**"
                 ).permitAll()
 
-                // 👑 ROLE BASED ACCESS
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/parent/**").hasRole("PARENT")
-                .requestMatchers("/agency/**").hasRole("AGENCY")
-                .requestMatchers("/staff/**").hasRole("STAFF")
-                .requestMatchers("/welfare/**").hasRole("CHILD_WELFARE")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/parent/**").hasRole("PARENT")
+                .requestMatchers("/api/agency/**").hasRole("AGENCY")
+                .requestMatchers("/api/staff/**").hasRole("STAFF")
+                .requestMatchers("/api/welfare/**").hasRole("CHILD_WELFARE")
 
-                // 🔒 EVERYTHING ELSE
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
 }

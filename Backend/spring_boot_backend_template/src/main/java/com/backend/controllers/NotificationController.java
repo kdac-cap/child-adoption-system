@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.backend.daos.NotificationRepository;
+import com.backend.daos.NotificationVisitRepository;
 import com.backend.entities.NotificationVisit;
 
 import lombok.RequiredArgsConstructor;
@@ -23,14 +24,14 @@ import lombok.RequiredArgsConstructor;
 })
 public class NotificationController {
 
-    private final NotificationRepository notificationRepository;
+    private final NotificationVisitRepository notificationVisitRepository;
 
     @GetMapping("/parent/{username}")
     @PreAuthorize("hasRole('PARENT')")
     public List<NotificationVisit> getParentNotifications(
             @PathVariable String username
     ) {
-        return notificationRepository.findByUserUsername(username);
+        return notificationVisitRepository.findByUserUsername(username);
     }
 }
 

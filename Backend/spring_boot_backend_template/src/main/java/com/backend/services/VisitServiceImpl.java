@@ -6,6 +6,7 @@ import com.backend.daos.ChildRepository;
 import com.backend.daos.NotificationRepository;
 import com.backend.daos.UserRepository;
 import com.backend.daos.VisitRepository;
+import com.backend.daos.NotificationVisitRepository;
 import com.backend.dto.VisitRequestDTO;
 import com.backend.dto.VisitResponseDTO;
 import com.backend.entities.Child;
@@ -25,7 +26,7 @@ public class VisitServiceImpl implements VisitService {
     private final VisitRepository visitRepo;
     private final ChildRepository childRepo;
     private final UserRepository userRepo;
-    private final NotificationRepository notificationRepo;
+    private final NotificationVisitRepository notificationVisitRepo;
 
     @Override
     public VisitResponseDTO scheduleVisit(VisitRequestDTO dto) {
@@ -46,7 +47,7 @@ public class VisitServiceImpl implements VisitService {
         visitRepo.save(visit);
 
         // 🔔 Notify parent
-        notificationRepo.save(new NotificationVisit(
+        notificationVisitRepo.save(new NotificationVisit(
             null,
             "📅 Visit scheduled on " + dto.getVisitDate() + " for " + child.getName(),
             false,
@@ -70,7 +71,7 @@ public class VisitServiceImpl implements VisitService {
         Visit visit = visitRepo.findById(visitId)
             .orElseThrow(() -> new ResourceNotFoundException("Visit not found"));
 
-        notificationRepo.save(new NotificationVisit(
+        notificationVisitRepo.save(new NotificationVisit(
             null,
             "❌ Visit cancelled for " + visit.getChild().getName(),
             false,
