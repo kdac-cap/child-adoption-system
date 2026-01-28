@@ -76,6 +76,22 @@ function StaffDashboard() {
               </div>
             </div>
           </div>
+
+          <div className="col-md-4 mb-3">
+            <div className="card shadow text-center p-3 h-100">
+              <div className="card-body">
+                <i className="fas fa-comments fa-3x text-success mb-3"></i>
+                <h5>💬 Messages</h5>
+                <p>Chat with parents and respond to inquiries</p>
+                <button
+                  className="btn btn-success"
+                  onClick={() => navigate("/chat")}
+                >
+                  View Messages
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

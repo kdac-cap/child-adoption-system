@@ -9,6 +9,7 @@ import com.backend.daos.UserRepository;
 import com.backend.daos.ParentRepository;
 import com.backend.services.DocumentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,7 @@ import java.util.Map;
         "http://localhost:3000",
         "http://localhost:5173"
 })
+@Slf4j
 public class DocumentController {
 
     private final DocumentService documentService;
@@ -103,9 +105,20 @@ public class DocumentController {
     public ResponseEntity<ApiResponse> verifyDocuments(
             @PathVariable Long id,
             @RequestBody Map<String, String> request) {
-        DocumentStatus status = DocumentStatus.valueOf(request.get("status"));
-        String comments = request.get("comments");
-        Document updated = documentService.verifyDocuments(id, status, comments);
-        return ResponseEntity.ok(new ApiResponse(true, "Document status updated", updated));
+        log.info("Document verification request received for document ID: {}", id);
+        try {
+            DocumentStatus status = DocumentStatus.valueOf(request.get("status"));
+            String comments = request.get("comments");
+            log.info("Verifying document {} with status: {} and comments: {}", id, status, comments);
+            
+            Document updated = documentService.verifyDocuments(id, status, comments);
+            log.info("Document {} verification completed successfully", id);
+            
+            return ResponseEntity.ok(new ApiResponse(true, "Document status updated", updated));
+        } catch (Exception e) {
+            log.error("Error verifying document {}", id, e);
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, "Failed to verify document: " + e.getMessage(), null));
+        }
     }
 }

@@ -46,4 +46,16 @@ public class MessageController {
         List<Message> messages = messageService.getUnreadMessages(userId);
         return ResponseEntity.ok(messages);
     }
+    
+    @GetMapping("/recent-conversations/{userId}")
+    public ResponseEntity<List<Map<String, Object>>> getRecentConversations(@PathVariable Long userId) {
+        List<Map<String, Object>> conversations = messageService.getRecentConversations(userId);
+        return ResponseEntity.ok(conversations);
+    }
+    
+    @GetMapping("/all-conversations/{userId}")
+    public ResponseEntity<List<Map<String, Object>>> getAllConversations(@PathVariable Long userId) {
+        List<Map<String, Object>> conversations = messageService.getAllConversations(userId);
+        return ResponseEntity.ok(conversations);
+    }
 }

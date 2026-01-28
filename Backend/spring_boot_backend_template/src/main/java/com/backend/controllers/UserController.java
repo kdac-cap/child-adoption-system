@@ -2,6 +2,7 @@ package com.backend.controllers;
 
 import com.backend.dto.ApiResponse;
 import com.backend.entities.User;
+import com.backend.entities.UserRole;
 import com.backend.daos.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -24,6 +27,36 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @GetMapping("/chat-users/{userId}")
+    public ResponseEntity<List<Map<String, Object>>> getChatUsers(@PathVariable Long userId) {
+        User currentUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        List<User> users;
+        if (currentUser.getRole() == UserRole.PARENT) {
+            // Parents can chat with STAFF and ADMIN
+            users = userRepository.findByRoleIn(List.of(UserRole.STAFF, UserRole.ADMIN));
+        } else if (currentUser.getRole() == UserRole.STAFF || currentUser.getRole() == UserRole.ADMIN) {
+            // Staff and Admin can see ALL parents (including those who sent messages)
+            users = userRepository.findByRole(UserRole.PARENT);
+        } else {
+            users = List.of();
+        }
+        
+        List<Map<String, Object>> userList = users.stream()
+            .map(user -> {
+                Map<String, Object> userMap = new HashMap<>();
+                userMap.put("id", user.getId());
+                userMap.put("username", user.getUsername());
+                userMap.put("fullName", user.getFullName());
+                userMap.put("role", user.getRole().toString());
+                return userMap;
+            })
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(userList);
+    }
 
     @GetMapping("/profile")
     public ResponseEntity<Map<String, Object>> getProfile() {

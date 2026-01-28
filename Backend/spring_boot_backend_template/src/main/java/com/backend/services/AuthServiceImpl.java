@@ -124,41 +124,60 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public Map<String, Object> login(LoginRequestDTO dto) {
-        // Simple: use email as username for authentication
-        String loginField = dto.getEmail() != null ? dto.getEmail() : dto.getUsername();
+        log.info("Login attempt for username: {}", dto.getUsername());
         
-        var auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginField, dto.getPassword()));
+        try {
+            // Find user by username or email
+            User user = null;
+            if (dto.getUsername() != null) {
+                user = userRepo.findByUsername(dto.getUsername()).orElse(null);
+            }
+            if (user == null && dto.getEmail() != null) {
+                user = userRepo.findByEmail(dto.getEmail()).orElse(null);
+            }
+            
+            if (user == null) {
+                log.warn("User not found for login: {}", dto.getUsername());
+                throw new BadCredentialsException("User not found");
+            }
+            
+            // Use the found user's username for authentication
+            var auth = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), dto.getPassword()));
 
-        String token = jwtUtil.createToken(auth);
-        User user = userRepo.findByEmail(loginField).orElse(userRepo.findByUsername(loginField).orElseThrow());
+            String token = jwtUtil.createToken(auth);
 
-        // Get parent or staff ID if applicable
-        Long parentId = null;
-        Long staffId = null;
-        
-        if (user.getRole() == UserRole.PARENT) {
-            parentId = parentRepo.findByUserId(user.getId())
-                .map(Parent::getId)
-                .orElse(null);
-        } else if (user.getRole() == UserRole.STAFF) {
-            staffId = staffRepo.findByUserId(user.getId())
-                .map(Staff::getId)
-                .orElse(null);
+            // Get parent or staff ID if applicable
+            Long parentId = null;
+            Long staffId = null;
+            
+            if (user.getRole() == UserRole.PARENT) {
+                parentId = parentRepo.findByUserId(user.getId())
+                    .map(Parent::getId)
+                    .orElse(null);
+            } else if (user.getRole() == UserRole.STAFF) {
+                staffId = staffRepo.findByUserId(user.getId())
+                    .map(Staff::getId)
+                    .orElse(null);
+            }
+
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
+            userMap.put("username", user.getUsername());
+            userMap.put("role", user.getRole());
+            userMap.put("email", user.getEmail());
+            userMap.put("fullName", user.getFullName());
+            if (parentId != null) userMap.put("parentId", parentId);
+            if (staffId != null) userMap.put("staffId", staffId);
+
+            log.info("Login successful for user: {}", user.getUsername());
+            return Map.of(
+                    "token", token,
+                    "user", userMap
+            );
+        } catch (Exception e) {
+            log.error("Login failed for username: {}", dto.getUsername(), e);
+            throw e;
         }
-
-        Map<String, Object> userMap = new HashMap<>();
-        userMap.put("id", user.getId());
-        userMap.put("username", user.getUsername());
-        userMap.put("role", user.getRole());
-        userMap.put("email", user.getEmail());
-        userMap.put("fullName", user.getFullName());
-        if (parentId != null) userMap.put("parentId", parentId);
-        if (staffId != null) userMap.put("staffId", staffId);
-
-        return Map.of(
-                "token", token,
-                "user", userMap
-        );
     }
 }

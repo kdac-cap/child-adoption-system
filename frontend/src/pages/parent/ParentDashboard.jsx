@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
+import notificationService from "../../services/notificationService";
+import applicationService from "../../services/applicationService";
 
 function ParentDashboard() {
   const navigate = useNavigate();
@@ -12,36 +14,32 @@ function ParentDashboard() {
   });
 
   useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadData = async () => {
     const user = JSON.parse(localStorage.getItem("authUser"));
     if (!user) return;
 
-    const loadData = () => {
-      // Load notifications
-      const notes = JSON.parse(
-        localStorage.getItem(`parentNotifications_${user.username}`)
-      ) || [];
-      setNotifications(notes);
+    try {
+      // Load notifications from backend
+      const notes = await notificationService.getNotificationsByUser(user.id);
+      setNotifications(notes || []);
 
-      // Load stats
-      const applications = JSON.parse(
-        localStorage.getItem(`applications_${user.username}`)
-      ) || [];
+      // Load applications from backend
+      const apps = await applicationService.getMyApplications();
       
-      const documents = JSON.parse(
-        localStorage.getItem(`documents_${user.username}`)
-      ) || [];
-
       setStats({
-        applications: applications.length,
-        documents: documents.length,
-        matches: applications.filter(app => app.status === 'MATCHED').length
+        applications: apps.length,
+        documents: apps.filter(app => app.status === 'DOCUMENTS_SUBMITTED' || app.status === 'DOCUMENTS_VERIFIED').length,
+        matches: apps.filter(app => app.status === 'APPROVED').length
       });
-    };
-
-    loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    }
+  };
 
   const dashboardCards = [
     {
@@ -143,14 +141,17 @@ function ParentDashboard() {
                     </div>
                   </div>
                   <div className="list-group list-group-flush">
-                    {notifications.slice(0, 3).map((notification, index) => (
-                      <div key={notification.id || index} className="list-group-item border-0 px-0">
+                    {notifications.slice(0, 3).map((notification) => (
+                      <div key={notification.id} className="list-group-item border-0 px-0">
                         <div className="d-flex align-items-start">
-                          <i className="fas fa-circle text-primary me-2 mt-2" style={{ fontSize: '0.5rem' }}></i>
+                          {!notification.read && (
+                            <i className="fas fa-circle text-primary me-2 mt-2" style={{ fontSize: '0.5rem' }}></i>
+                          )}
                           <div className="flex-grow-1">
+                            <strong className="d-block mb-1">{notification.title}</strong>
                             <p className="mb-1">{notification.message}</p>
                             <small className="text-muted">
-                              {notification.timestamp ? new Date(notification.timestamp).toLocaleDateString() : 'Recent'}
+                              {new Date(notification.createdAt).toLocaleString()}
                             </small>
                           </div>
                         </div>

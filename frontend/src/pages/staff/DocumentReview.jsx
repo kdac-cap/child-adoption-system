@@ -94,92 +94,41 @@ function DocumentReview() {
   };
 
   const finalizeVerification = async () => {
-    if (!documents) {
+    if (!documents || !documents.id) {
       showErrorToast(null, "No documents to verify");
       return;
     }
 
     try {
-      // Try backend first
-      if (documents.id) {
-        await documentService.verifyDocuments(documents.id, "VERIFIED", "All documents verified successfully");
-      } else {
-        // Fallback to localStorage
-        const apps = JSON.parse(localStorage.getItem("applications")) || [];
-        const updatedApps = apps.map(app => {
-          if (app.id === selectedApp.id) {
-            return {
-              ...app,
-              status: "DOCUMENTS_VERIFIED",
-              staffMessage: "All documents verified successfully. Welfare visit will be scheduled soon."
-            };
-          }
-          return app;
-        });
-        localStorage.setItem("applications", JSON.stringify(updatedApps));
-
-        // Update documents in localStorage
-        const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
-        const updatedDocs = allDocs.map(doc => {
-          if (doc.applicationId === selectedApp.id) {
-            return { ...doc, status: "VERIFIED" };
-          }
-          return doc;
-        });
-        localStorage.setItem("documents", JSON.stringify(updatedDocs));
-      }
-      
+      await documentService.verifyDocuments(documents.id, "VERIFIED", "All documents verified successfully");
       showSuccessToast("All documents verified! Application moved to next stage.");
       setSelectedApp(null);
       setDocuments(null);
       loadApplicationsWithDocuments();
     } catch (error) {
       console.error('Verification error:', error);
-      showErrorToast(error, "Failed to verify documents");
+      showErrorToast(error, "Failed to verify documents. Please try again.");
     }
   };
 
   const rejectDocuments = async () => {
     const reason = prompt("Enter rejection reason:");
-    if (!reason) return;
+    if (!reason || !reason.trim()) return;
+
+    if (!documents || !documents.id) {
+      showErrorToast(null, "No documents to reject");
+      return;
+    }
 
     try {
-      // Try backend first
-      if (documents && documents.id) {
-        await documentService.verifyDocuments(documents.id, "REJECTED", reason);
-      } else {
-        // Fallback to localStorage
-        const apps = JSON.parse(localStorage.getItem("applications")) || [];
-        const updatedApps = apps.map(app => {
-          if (app.id === selectedApp.id) {
-            return {
-              ...app,
-              status: "DOCUMENTS_REQUESTED",
-              staffMessage: reason
-            };
-          }
-          return app;
-        });
-        localStorage.setItem("applications", JSON.stringify(updatedApps));
-
-        // Update documents in localStorage
-        const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
-        const updatedDocs = allDocs.map(doc => {
-          if (doc.applicationId === selectedApp.id) {
-            return { ...doc, status: "REJECTED" };
-          }
-          return doc;
-        });
-        localStorage.setItem("documents", JSON.stringify(updatedDocs));
-      }
-      
+      await documentService.verifyDocuments(documents.id, "REJECTED", reason);
       showSuccessToast("Documents rejected. Parent has been notified.");
       setSelectedApp(null);
       setDocuments(null);
       loadApplicationsWithDocuments();
     } catch (error) {
       console.error('Rejection error:', error);
-      showErrorToast(error, "Failed to reject documents");
+      showErrorToast(error, "Failed to reject documents. Please try again.");
     }
   };
 

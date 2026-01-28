@@ -9,6 +9,7 @@ import com.backend.entities.Document;
 import com.backend.entities.DocumentStatus;
 import com.backend.entities.Parent;
 import com.backend.exceptions.ResourceNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.List;
 
 @Service
 @Transactional
+@Slf4j
 public class DocumentServiceImpl implements DocumentService {
     
     @Autowired
@@ -132,23 +134,28 @@ public class DocumentServiceImpl implements DocumentService {
     
     @Override
     public Document verifyDocuments(Long id, DocumentStatus status, String comments) {
+        log.info("Verifying document ID: {} with status: {}", id, status);
+        
         Document document = getDocumentById(id);
         document.setStatus(status);
         document.setAdminComments(comments);
         document.setStaffVerifiedAt(LocalDateTime.now());
         
         Document updated = documentRepository.save(document);
+        log.info("Document {} updated with status: {}", id, status);
         
         if (status == DocumentStatus.VERIFIED) {
             Application application = document.getApplication();
             application.setStatus(ApplicationStatus.DOCUMENTS_VERIFIED);
             applicationRepository.save(application);
+            log.info("Application {} status updated to DOCUMENTS_VERIFIED", application.getId());
             
             notificationService.createNotification(
                 document.getParent().getUser().getId(),
                 "Documents Verified",
                 "Your documents have been verified successfully. Admin will review your application."
             );
+            log.info("Notification sent to parent (User ID: {}) for document verification", document.getParent().getUser().getId());
             
             auditLogService.logAction(
                 "DOCUMENT_VERIFIED",
@@ -162,12 +169,15 @@ public class DocumentServiceImpl implements DocumentService {
             Application application = document.getApplication();
             application.setStatus(ApplicationStatus.DOCUMENTS_REQUESTED);
             applicationRepository.save(application);
+            log.info("Application {} status updated to DOCUMENTS_REQUESTED (rejected)", application.getId());
             
             notificationService.createNotification(
                 document.getParent().getUser().getId(),
                 "Documents Rejected",
                 "Your documents have been rejected. Please resubmit. Reason: " + comments
             );
+            log.info("Notification sent to parent (User ID: {}) for document rejection. Reason: {}", 
+                document.getParent().getUser().getId(), comments);
             
             auditLogService.logAction(
                 "DOCUMENT_REJECTED",
@@ -179,6 +189,7 @@ public class DocumentServiceImpl implements DocumentService {
             );
         }
         
+        log.info("Document verification completed for document ID: {}", id);
         return updated;
     }
 }

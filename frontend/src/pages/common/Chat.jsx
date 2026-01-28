@@ -39,9 +39,19 @@ function Chat() {
   const loadUsers = async (authUser) => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await axios.get(`${API_URL}/users/chat-users/${authUser.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      let response;
+      
+      if (authUser.role === 'STAFF' || authUser.role === 'ADMIN') {
+        // For staff/admin, get all conversations including new parent messages
+        response = await axios.get(`${API_URL}/messages/all-conversations/${authUser.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } else {
+        // For parents, use regular chat-users endpoint
+        response = await axios.get(`${API_URL}/users/chat-users/${authUser.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
       
       setUsers(response.data);
       
