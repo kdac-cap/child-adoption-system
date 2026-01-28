@@ -7,9 +7,8 @@ const getAuthHeader = () => ({
 });
 
 const documentService = {
-  submitDocuments: async (parentId, applicationId, documents) => {
-    const response = await axios.post(API_URL, {
-      parentId,
+  submitDocuments: async (applicationId, documents) => {
+    const response = await axios.post(`${API_URL}/submit`, {
       applicationId,
       ...documents
     }, getAuthHeader());

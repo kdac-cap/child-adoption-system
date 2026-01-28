@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import Navbar from "../../components/layout/Navbar";
+import { toast } from 'react-toastify';
+import applicationService from "../../services/applicationService";
+import documentService from "../../services/documentService";
 
 function Documents() {
   const [documents, setDocuments] = useState({
@@ -20,19 +23,24 @@ function Documents() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const authUser = JSON.parse(localStorage.getItem("authUser"));
-    if (!authUser) return;
+    const fetchApplications = async () => {
+      try {
+        const apps = await applicationService.getMyApplications();
+        const eligibleApps = apps.filter(app => 
+          app.status === "DOCUMENTS_REQUESTED" || app.status === "DOCUMENTS_SUBMITTED"
+        );
+        setApplications(eligibleApps);
 
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    const myApps = apps.filter(app => 
-      app.parentUsername === authUser.username && 
-      (app.status === "DOCUMENTS_REQUESTED" || app.status === "DOCUMENTS_SUBMITTED")
-    );
-    setApplications(myApps);
+        if (eligibleApps.length > 0) {
+          setSelectedAppId(eligibleApps[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+        toast.error('Failed to load applications');
+      }
+    };
 
-    if (myApps.length > 0) {
-      setSelectedAppId(myApps[0].id);
-    }
+    fetchApplications();
   }, []);
 
   const handleFileChange = (docType, file) => {
@@ -48,54 +56,28 @@ function Documents() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!selectedAppId) {
-      alert("Please select an application to submit documents for");
+      toast.error("Please select an application to submit documents for");
       return;
     }
 
-    const authUser = JSON.parse(localStorage.getItem("authUser"));
-    if (!authUser) return;
+    try {
+      await documentService.submitDocuments(selectedAppId, documents);
+      
+      setStatus("SUBMITTED");
+      setMessage("Documents submitted successfully! Staff will review them.");
+      toast.success("Documents submitted successfully!");
 
-    const docData = {
-      ...documents,
-      status: "SUBMITTED",
-      submittedAt: new Date().toISOString(),
-      parentUsername: authUser.username,
-      applicationId: selectedAppId
-    };
-
-    const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
-    const existingIndex = allDocs.findIndex(doc => doc.applicationId === selectedAppId);
-    
-    if (existingIndex >= 0) {
-      allDocs[existingIndex] = docData;
-    } else {
-      allDocs.push(docData);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Error submitting documents:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit documents. Please try again.');
     }
-    localStorage.setItem("documents", JSON.stringify(allDocs));
-
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    const updatedApps = apps.map(app => {
-      if (app.id === selectedAppId) {
-        return {
-          ...app,
-          status: "DOCUMENTS_SUBMITTED",
-          staffMessage: "Documents submitted successfully. Staff will review them soon."
-        };
-      }
-      return app;
-    });
-    localStorage.setItem("applications", JSON.stringify(updatedApps));
-
-    setStatus("SUBMITTED");
-    setMessage("Documents submitted successfully! Staff will review them.");
-
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   };
 
   const documentTypes = [

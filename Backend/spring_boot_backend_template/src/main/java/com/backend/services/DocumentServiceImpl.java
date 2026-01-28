@@ -84,6 +84,53 @@ public class DocumentServiceImpl implements DocumentService {
     }
     
     @Override
+    public Document uploadDocument(org.springframework.web.multipart.MultipartFile file, Long applicationId, String documentType, Long userId) {
+        Application application = applicationRepository.findById(applicationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        
+        Document document = documentRepository.findByApplicationId(applicationId)
+            .orElse(new Document());
+        
+        document.setApplication(application);
+        document.setParent(application.getParent());
+        document.setParentUsername(application.getParentUsername());
+        document.setStatus(DocumentStatus.PENDING);
+        document.setSubmittedAt(LocalDateTime.now());
+        
+        String fileName = file.getOriginalFilename();
+        switch (documentType.toLowerCase()) {
+            case "identity_proof" -> document.setIdentityProof(fileName);
+            case "address_proof" -> document.setAddressProof(fileName);
+            case "income_proof" -> document.setIncomeProof(fileName);
+            case "marriage_proof" -> document.setMarriageProof(fileName);
+            case "medical_certificate" -> document.setMedicalCertificate(fileName);
+            case "police_verification" -> document.setPoliceVerification(fileName);
+        }
+        
+        Document saved = documentRepository.save(document);
+        
+        // Update application status to DOCUMENTS_SUBMITTED
+        application.setStatus(ApplicationStatus.DOCUMENTS_SUBMITTED);
+        applicationRepository.save(application);
+        
+        notificationService.createNotification(
+            application.getParent().getUser().getId(),
+            "Document Uploaded",
+            "Your " + documentType + " has been uploaded successfully."
+        );
+        
+        return saved;
+    }
+    
+    @Override
+    public List<Document> getDocumentsByUser(Long userId) {
+        // Find parent by user ID and get their documents
+        Parent parent = parentRepository.findByUserId(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Parent not found"));
+        return documentRepository.findByParentId(parent.getId());
+    }
+    
+    @Override
     public Document verifyDocuments(Long id, DocumentStatus status, String comments) {
         Document document = getDocumentById(id);
         document.setStatus(status);

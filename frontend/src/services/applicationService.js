@@ -7,8 +7,13 @@ const getAuthHeader = () => ({
 });
 
 const applicationService = {
-  createApplication: async (parentId, childId) => {
-    const response = await axios.post(API_URL, { parentId, childId }, getAuthHeader());
+  createApplication: async (childId) => {
+    const response = await axios.post(API_URL, { childId }, getAuthHeader());
+    return response.data;
+  },
+
+  getMyApplications: async () => {
+    const response = await axios.get(`${API_URL}/my-applications`, getAuthHeader());
     return response.data;
   },
 
@@ -24,6 +29,16 @@ const applicationService = {
 
   getAllApplications: async () => {
     const response = await axios.get(API_URL, getAuthHeader());
+    return response.data;
+  },
+
+  updateApplicationStatus: async (id, data) => {
+    const response = await axios.put(`${API_URL}/${id}/status`, data, getAuthHeader());
+    return response.data;
+  },
+
+  requestDocuments: async (id, data) => {
+    const response = await axios.put(`${API_URL}/${id}/request-documents`, data, getAuthHeader());
     return response.data;
   },
 

@@ -197,4 +197,9 @@ public class AdminServiceImpl implements AdminService {
     public Long getPendingApplications() {
         return (long) applicationRepository.findByStatus(ApplicationStatus.PENDING_STAFF_APPROVAL).size();
     }
+    
+    @Override
+    public Long getApprovedApplications() {
+        return (long) applicationRepository.findByStatus(ApplicationStatus.APPROVED).size();
+    }
 }

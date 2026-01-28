@@ -4,7 +4,6 @@ import com.backend.entities.Gender;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
@@ -31,6 +30,6 @@ public class ChildRequestDTO {
     @Size(max = 500, message = "Foster history cannot exceed 500 characters")
     private String fosterHistory;
 
-    // Optional file
-    private MultipartFile photo;
+    // Photo URL or path
+    private String photo;
 }

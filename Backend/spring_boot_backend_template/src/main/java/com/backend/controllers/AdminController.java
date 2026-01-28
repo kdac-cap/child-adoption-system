@@ -38,7 +38,7 @@ public class AdminController {
             @RequestBody Map<String, String> request) {
         UserRole role = UserRole.valueOf(request.get("role"));
         User updated = adminService.updateUserRole(id, role);
-        return ResponseEntity.ok(new ApiResponse("User role updated", true, updated));
+        return ResponseEntity.ok(new ApiResponse(true, "User role updated", updated));
     }
     
     @DeleteMapping("/users/{id}")
@@ -59,7 +59,7 @@ public class AdminController {
             @RequestBody Map<String, String> request) {
         String message = request.getOrDefault("message", "Application approved");
         Application approved = adminService.approveApplication(id, message);
-        return ResponseEntity.ok(new ApiResponse("Application approved", true, approved));
+        return ResponseEntity.ok(new ApiResponse(true, "Application approved", approved));
     }
     
     @PutMapping("/applications/{id}/reject")
@@ -68,14 +68,14 @@ public class AdminController {
             @RequestBody Map<String, String> request) {
         String message = request.getOrDefault("message", "Application rejected");
         Application rejected = adminService.rejectApplication(id, message);
-        return ResponseEntity.ok(new ApiResponse("Application rejected", true, rejected));
+        return ResponseEntity.ok(new ApiResponse(true, "Application rejected", rejected));
     }
     
     // Welfare Review
     @PutMapping("/applications/{id}/welfare-review")
     public ResponseEntity<ApiResponse> requestWelfareReview(@PathVariable Long id) {
         Application updated = adminService.requestWelfareReview(id);
-        return ResponseEntity.ok(new ApiResponse("Welfare review requested", true, updated));
+        return ResponseEntity.ok(new ApiResponse(true, "Welfare review requested", updated));
     }
     
     @PutMapping("/applications/{id}/welfare-approve")
@@ -84,7 +84,7 @@ public class AdminController {
             @RequestBody Map<String, String> request) {
         String comments = request.getOrDefault("comments", "Welfare review approved");
         Application approved = adminService.approveWelfareReview(id, comments);
-        return ResponseEntity.ok(new ApiResponse("Welfare review approved", true, approved));
+        return ResponseEntity.ok(new ApiResponse(true, "Welfare review approved", approved));
     }
     
     // Document Management

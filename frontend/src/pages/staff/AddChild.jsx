@@ -1,29 +1,41 @@
 import { useState, useEffect } from "react";
+import { toast } from 'react-toastify';
+import axios from 'axios';
 import Navbar from "../../components/layout/Navbar";
+import childService from "../../services/childService";
 
 function AddChild() {
   const [childData, setChildData] = useState({
     name: "",
     age: "",
     gender: "",
-    photo: "",
+    photo: null,
     healthReport: "",
     fosterHistory: "",
-    description: "",
-    status: "AVAILABLE"
+    description: ""
   });
 
   const [children, setChildren] = useState([]);
   const [editingChildId, setEditingChildId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadChildren();
   }, []);
 
-  const loadChildren = () => {
-    const savedChildren =
-      JSON.parse(localStorage.getItem("childrenData")) || [];
-    setChildren(savedChildren);
+  const loadChildren = async () => {
+    try {
+      // Staff should use /staff/children endpoint to get all children they manage
+      const response = await axios.get('http://localhost:8080/staff/children', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      setChildren(response.data);
+    } catch (error) {
+      console.error('Error loading children:', error);
+      toast.error('Failed to load children');
+    }
   };
 
   const handleChange = (e) => {
@@ -38,11 +50,10 @@ function AddChild() {
       name: child.name,
       age: child.age,
       gender: child.gender,
-      photo: child.photo,
-      healthReport: child.healthReport,
-      fosterHistory: child.fosterHistory,
-      description: child.description,
-      status: child.status
+      photo: null,
+      healthReport: child.healthReport || "",
+      fosterHistory: child.fosterHistory || "",
+      description: child.description || ""
     });
     setEditingChildId(child.id);
   };
@@ -50,78 +61,73 @@ function AddChild() {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
       setChildData({
         ...childData,
-        photo: imageUrl
+        photo: file
       });
     }
   };
 
-  const getRandomColor = () => {
-    const colors = ["4CAF50", "FF9800", "2196F3", "E91E63", "9C27B0", "FF5722"];
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!childData.name || !childData.age || !childData.gender) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    let updatedChildren;
+    setLoading(true);
 
-    if (editingChildId) {
-      updatedChildren = children.map((child) =>
-        child.id === editingChildId
-          ? { ...child, ...childData }
-          : child
-      );
-      alert("Child updated successfully!");
-    } else {
-      const authUser = JSON.parse(localStorage.getItem("authUser"));
-      const newChild = {
-        ...childData,
-        id: Date.now(),
-        addedBy: authUser?.username,
-        addedAt: new Date().toISOString(),
-        photo:
-          childData.photo ||
-          `https://via.placeholder.com/300x200/${getRandomColor()}/white?text=${childData.name}`
+    try {
+      const formData = {
+        name: childData.name,
+        age: parseInt(childData.age),
+        gender: childData.gender.toUpperCase(),
+        description: childData.description,
+        healthReport: childData.healthReport,
+        fosterHistory: childData.fosterHistory,
+        photo: childData.photo
       };
-      updatedChildren = [...children, newChild];
-      alert("Child added successfully!");
+
+      if (editingChildId) {
+        await childService.updateChild(editingChildId, formData);
+        toast.success("Child updated successfully!");
+      } else {
+        await childService.addChild(formData);
+        toast.success("Child added successfully!");
+      }
+
+      await loadChildren();
+
+      setChildData({
+        name: "",
+        age: "",
+        gender: "",
+        photo: null,
+        healthReport: "",
+        fosterHistory: "",
+        description: ""
+      });
+
+      setEditingChildId(null);
+    } catch (error) {
+      console.error('Error saving child:', error);
+      toast.error(error.message || 'Failed to save child');
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("childrenData", JSON.stringify(updatedChildren));
-    loadChildren();
-
-    setChildData({
-      name: "",
-      age: "",
-      gender: "",
-      photo: "",
-      healthReport: "",
-      fosterHistory: "",
-      description: "",
-      status: "AVAILABLE"
-    });
-
-    setEditingChildId(null);
   };
 
-  const handleRemoveChild = (childId) => {
+  const handleRemoveChild = async (childId) => {
     if (window.confirm("Are you sure you want to remove this child?")) {
-      const updatedChildren = children.filter(
-        (child) => child.id !== childId
-      );
-      localStorage.setItem(
-        "childrenData",
-        JSON.stringify(updatedChildren)
-      );
-      loadChildren();
+      try {
+        await childService.deleteChild(childId);
+        toast.success('Child removed successfully');
+        await loadChildren();
+      } catch (error) {
+        console.error('Error removing child:', error);
+        toast.error('Failed to remove child');
+      }
     }
   };
 
@@ -178,8 +184,8 @@ function AddChild() {
                       required
                     >
                       <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
                     </select>
                   </div>
 
@@ -226,8 +232,8 @@ function AddChild() {
                     />
                   </div>
 
-                  <button type="submit" className="btn btn-primary w-100">
-                    {editingChildId ? "Update Child" : "Add Child"}
+                  <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                    {loading ? "Saving..." : editingChildId ? "Update Child" : "Add Child"}
                   </button>
                 </form>
               </div>
@@ -250,9 +256,8 @@ function AddChild() {
                     {children.map((child) => (
                       <div key={child.id} className="col-md-6 mb-3">
                         <div className="card border">
-                          {/* ✅ ONLY CSS FIX HERE */}
                           <img
-                            src={child.photo}
+                            src={child.photo ? `http://localhost:8080${child.photo}` : (child.gender === 'MALE' ? '/Boys.jpg' : '/girls.jpg')}
                             alt={child.name}
                             style={{
                               width: "100%",
@@ -261,6 +266,9 @@ function AddChild() {
                               objectPosition: "center",
                               borderTopLeftRadius: "6px",
                               borderTopRightRadius: "6px"
+                            }}
+                            onError={(e) => {
+                              e.target.src = child.gender === 'MALE' ? '/Boys.jpg' : '/girls.jpg';
                             }}
                           />
 
@@ -271,7 +279,7 @@ function AddChild() {
                                 Age: {child.age}
                               </span>
                               <span className="badge bg-warning">
-                                {child.gender}
+                                {child.gender === 'MALE' ? 'Male' : 'Female'}
                               </span>
                             </div>
                             <p className="card-text small">

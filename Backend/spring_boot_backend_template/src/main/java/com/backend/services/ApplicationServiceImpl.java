@@ -69,6 +69,11 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
     
     @Override
+    public List<Application> getApplicationsByParent(Long parentId) {
+        return applicationRepository.findByParentId(parentId);
+    }
+    
+    @Override
     public List<Application> getAllApplications() {
         return applicationRepository.findAll();
     }
@@ -98,5 +103,32 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public void deleteApplication(Long id) {
         applicationRepository.deleteById(id);
+    }
+    
+    @Override
+    public Application approveApplication(Long id, String message) {
+        return updateApplicationStatus(id, ApplicationStatus.APPROVED, message);
+    }
+    
+    @Override
+    public Application rejectApplication(Long id, String message) {
+        return updateApplicationStatus(id, ApplicationStatus.REJECTED, message);
+    }
+    
+    @Override
+    public Application requestDocuments(Long id, String message) {
+        Application application = getApplicationById(id);
+        application.setStatus(ApplicationStatus.DOCUMENTS_REQUESTED);
+        application.setStaffMessage(message);
+        
+        Application updated = applicationRepository.save(application);
+        
+        notificationService.createNotification(
+            application.getParent().getUser().getId(),
+            "Documents Requested",
+            "Staff has requested documents for your adoption application. Please submit the required documents. Message: " + message
+        );
+        
+        return updated;
     }
 }

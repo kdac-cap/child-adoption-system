@@ -1,70 +1,63 @@
 import { useState, useEffect } from "react";
+import { toast } from 'react-toastify';
 import Navbar from "../../components/layout/Navbar";
+import applicationService from "../../services/applicationService";
 
 function StaffApplications() {
   const [applications, setApplications] = useState([]);
   const [selectedApp, setSelectedApp] = useState(null);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadApplications();
   }, []);
 
-  const loadApplications = () => {
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    setApplications(apps);
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      const data = await applicationService.getAllApplications();
+      setApplications(data);
+    } catch (error) {
+      console.error('Error loading applications:', error);
+      toast.error('Failed to load applications');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleApproveApplication = (appId) => {
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    const updatedApps = apps.map(app => {
-      if (app.id === appId) {
-        return {
-          ...app,
-          status: "DOCUMENTS_REQUESTED",
-          staffMessage: "Your application has been approved! Please submit the required documents to proceed with the adoption process."
-        };
-      }
-      return app;
-    });
-
-    localStorage.setItem("applications", JSON.stringify(updatedApps));
-    
-    // Add notification for parent
-    const parentNotifications = JSON.parse(localStorage.getItem("parentNotifications")) || [];
-    const app = apps.find(a => a.id === appId);
-    parentNotifications.push({
-      id: Date.now(),
-      message: `Your adoption application for ${app.childName} has been approved. Please submit required documents.`,
-      type: "success",
-      read: false,
-      parentUsername: app.parentUsername,
-      timestamp: new Date().toISOString()
-    });
-    localStorage.setItem("parentNotifications", JSON.stringify(parentNotifications));
-
-    loadApplications();
-    alert("Application approved and parent notified to submit documents!");
+  const handleRequestDocuments = async (appId) => {
+    try {
+      await applicationService.requestDocuments(appId, {
+        message: "Your application has been approved! Please submit the required documents to proceed with the adoption process."
+      });
+      toast.success("Documents requested from parent!");
+      await loadApplications();
+    } catch (error) {
+      console.error('Error requesting documents:', error);
+      toast.error('Failed to request documents');
+    }
   };
 
-  const handleRejectApplication = (appId) => {
-    const apps = JSON.parse(localStorage.getItem("applications")) || [];
-    const updatedApps = apps.map(app => {
-      if (app.id === appId) {
-        return {
-          ...app,
-          status: "REJECTED",
-          staffMessage: message || "Your application has been rejected. Please contact us for more information."
-        };
-      }
-      return app;
-    });
+  const handleRejectApplication = async (appId) => {
+    if (!message.trim()) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
 
-    localStorage.setItem("applications", JSON.stringify(updatedApps));
-    loadApplications();
-    setMessage("");
-    setSelectedApp(null);
-    alert("Application rejected and parent notified!");
+    try {
+      await applicationService.updateApplicationStatus(appId, {
+        status: "REJECTED",
+        message: message
+      });
+      toast.success("Application rejected and parent notified!");
+      setMessage("");
+      setSelectedApp(null);
+      await loadApplications();
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      toast.error('Failed to reject application');
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -77,6 +70,22 @@ function StaffApplications() {
     };
     return statusConfig[status] || { class: "bg-secondary", text: status };
   };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container parent-dashboard-container">
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3 text-muted">Loading applications...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -115,7 +124,7 @@ function StaffApplications() {
                       <div className="d-flex gap-2">
                         <button
                           className="btn btn-success btn-sm"
-                          onClick={() => handleApproveApplication(app.id)}
+                          onClick={() => handleRequestDocuments(app.id)}
                         >
                           Approve & Request Documents
                         </button>

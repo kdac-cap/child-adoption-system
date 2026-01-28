@@ -5,14 +5,16 @@ package com.backend.controllers;
 import com.backend.dto.ChildRequestDTO;
 import com.backend.dto.ChildResponseDTO;
 import com.backend.entities.ChildStatus;
+import com.backend.entities.Gender;
 import com.backend.services.ChildService;
+import com.backend.services.FileStorageService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,6 +25,7 @@ import java.util.List;
 public class StaffChildController {
 
     private final ChildService childService;
+    private final FileStorageService fileStorageService;
 
     @GetMapping
     @PreAuthorize("hasRole('STAFF')")
@@ -36,21 +39,59 @@ public class StaffChildController {
         return childService.getChildrenByStatus(status);
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     @PreAuthorize("hasRole('STAFF')")
     public ChildResponseDTO addChild(
-            @Valid @ModelAttribute ChildRequestDTO request,
+            @RequestParam("name") String name,
+            @RequestParam("age") Integer age,
+            @RequestParam("gender") String gender,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "healthReport", required = false) String healthReport,
+            @RequestParam(value = "fosterHistory", required = false) String fosterHistory,
+            @RequestParam(value = "photo", required = false) MultipartFile photo,
             Authentication authentication
     ) {
+        ChildRequestDTO request = new ChildRequestDTO();
+        request.setName(name);
+        request.setAge(age);
+        request.setGender(Gender.valueOf(gender.toUpperCase()));
+        request.setDescription(description);
+        request.setHealthReport(healthReport);
+        request.setFosterHistory(fosterHistory);
+        
+        if (photo != null && !photo.isEmpty()) {
+            String photoPath = fileStorageService.storeFile(photo);
+            request.setPhoto(photoPath);
+        }
+        
         return childService.addChild(request, authentication.getName());
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('STAFF')")
     public ChildResponseDTO updateChild(
             @PathVariable Long id,
-            @Valid @ModelAttribute ChildRequestDTO request
+            @RequestParam("name") String name,
+            @RequestParam("age") Integer age,
+            @RequestParam("gender") String gender,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "healthReport", required = false) String healthReport,
+            @RequestParam(value = "fosterHistory", required = false) String fosterHistory,
+            @RequestParam(value = "photo", required = false) MultipartFile photo
     ) {
+        ChildRequestDTO request = new ChildRequestDTO();
+        request.setName(name);
+        request.setAge(age);
+        request.setGender(Gender.valueOf(gender.toUpperCase()));
+        request.setDescription(description);
+        request.setHealthReport(healthReport);
+        request.setFosterHistory(fosterHistory);
+        
+        if (photo != null && !photo.isEmpty()) {
+            String photoPath = fileStorageService.storeFile(photo);
+            request.setPhoto(photoPath);
+        }
+        
         return childService.updateChild(id, request);
     }
 

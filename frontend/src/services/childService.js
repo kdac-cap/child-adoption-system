@@ -57,14 +57,17 @@ const childService = {
   addChild: async (childData) => {
     try {
       const formData = new FormData();
-      Object.keys(childData).forEach(key => {
-        if (childData[key] !== null && childData[key] !== undefined) {
-          formData.append(key, childData[key]);
-        }
-      });
+      formData.append('name', childData.name);
+      formData.append('age', childData.age);
+      formData.append('gender', childData.gender);
+      if (childData.description) formData.append('description', childData.description);
+      if (childData.healthReport) formData.append('healthReport', childData.healthReport);
+      if (childData.fosterHistory) formData.append('fosterHistory', childData.fosterHistory);
+      if (childData.photo) formData.append('photo', childData.photo);
 
-      const response = await api.post('/', formData, {
+      const response = await axios.post('http://localhost:8080/staff/children', formData, {
         headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -78,14 +81,17 @@ const childService = {
   updateChild: async (id, childData) => {
     try {
       const formData = new FormData();
-      Object.keys(childData).forEach(key => {
-        if (childData[key] !== null && childData[key] !== undefined) {
-          formData.append(key, childData[key]);
-        }
-      });
+      formData.append('name', childData.name);
+      formData.append('age', childData.age);
+      formData.append('gender', childData.gender);
+      if (childData.description) formData.append('description', childData.description);
+      if (childData.healthReport) formData.append('healthReport', childData.healthReport);
+      if (childData.fosterHistory) formData.append('fosterHistory', childData.fosterHistory);
+      if (childData.photo) formData.append('photo', childData.photo);
 
-      const response = await api.put(`/${id}`, formData, {
+      const response = await axios.put(`http://localhost:8080/staff/children/${id}`, formData, {
         headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           'Content-Type': 'multipart/form-data',
         },
       });
@@ -98,7 +104,11 @@ const childService = {
   // Delete child (Staff only)
   deleteChild: async (id) => {
     try {
-      await api.delete(`/${id}`);
+      await axios.delete(`http://localhost:8080/staff/children/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
       return { success: true };
     } catch (error) {
       throw error.response?.data || { message: 'Failed to delete child' };

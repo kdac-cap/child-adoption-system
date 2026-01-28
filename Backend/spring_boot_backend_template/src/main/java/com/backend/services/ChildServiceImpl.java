@@ -37,22 +37,34 @@ public class ChildServiceImpl implements ChildService {
 
     @Override
     public ChildResponseDTO addChild(ChildRequestDTO request, String addedBy) {
-        Child child = new Child();
-        child.setName(request.getName());
-        child.setAge(request.getAge());
-        child.setGender(request.getGender());
-        child.setDescription(request.getDescription());
-        child.setHealthReport(request.getHealthReport());
-        child.setFosterHistory(request.getFosterHistory());
+        try {
+            System.out.println("ChildService: Creating child with name: " + request.getName());
+            
+            Child child = new Child();
+            child.setName(request.getName());
+            child.setAge(request.getAge());
+            child.setGender(request.getGender());
+            child.setDescription(request.getDescription());
+            child.setHealthReport(request.getHealthReport());
+            child.setFosterHistory(request.getFosterHistory());
+            child.setStatus(ChildStatus.AVAILABLE);
+            child.setAddedBy(addedBy);
 
-        // ✅ MINIMAL: store filename only
-        if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {
-            child.setPhoto(request.getPhoto().getOriginalFilename());
+            // Handle photo if present
+            if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {
+                child.setPhoto(request.getPhoto());
+            }
+
+            System.out.println("ChildService: Saving child to database...");
+            Child savedChild = repository.save(child);
+            System.out.println("ChildService: Child saved with ID: " + savedChild.getId());
+            
+            return mapToDto(savedChild);
+        } catch (Exception e) {
+            System.err.println("ChildService: Error saving child: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        child.setAddedBy(addedBy);
-
-        return mapToDto(repository.save(child));
     }
 
     @Override
@@ -67,7 +79,7 @@ public class ChildServiceImpl implements ChildService {
         child.setFosterHistory(request.getFosterHistory());
 
         if (request.getPhoto() != null && !request.getPhoto().isEmpty()) {
-            child.setPhoto(request.getPhoto().getOriginalFilename());
+            child.setPhoto(request.getPhoto());
         }
 
         return mapToDto(repository.save(child));

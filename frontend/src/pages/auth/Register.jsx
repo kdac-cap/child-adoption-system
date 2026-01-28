@@ -18,17 +18,16 @@ function Register() {
 
   const roleOptions = [
     { value: "PARENT", label: "Prospective Parent" },
-    { value: "AGENCY", label: "Adoption Agency" },
     { value: "STAFF", label: "Staff Member" },
     { value: "ADMIN", label: "Administrator" },
     { value: "CHILD_WELFARE", label: "Child Welfare Department" }
   ];
 
   const maritalStatusOptions = [
-    { value: "single", label: "Single" },
-    { value: "married", label: "Married" },
-    { value: "divorced", label: "Divorced" },
-    { value: "widowed", label: "Widowed" }
+    { value: "SINGLE", label: "Single" },
+    { value: "MARRIED", label: "Married" },
+    { value: "DIVORCED", label: "Divorced" },
+    { value: "WIDOWED", label: "Widowed" }
   ];
 
   const handleChange = (e) => {
@@ -68,14 +67,7 @@ function Register() {
       };
     }
 
-    if (role === "AGENCY") {
-      return {
-        ...baseRules,
-        agency_name: [{ validator: (v) => v && v.trim() !== "", message: "Agency name is required" }],
-        license_number: [{ validator: (v) => v && v.trim() !== "", message: "License number is required" }],
-        address: validationRules.address
-      };
-    }
+
 
     if (role === "STAFF") {
       return {
@@ -129,7 +121,7 @@ function Register() {
 
       // Add role-specific fields
       if (role === 'PARENT') {
-        registrationData.maritalStatus = formData.marital_status?.toUpperCase();
+        registrationData.maritalStatus = formData.marital_status;
         registrationData.occupation = formData.occupation;
         registrationData.annualIncome = formData.annual_income;
         registrationData.city = formData.city;
@@ -145,6 +137,8 @@ function Register() {
         registrationData.experience = formData.experience;
       }
 
+      console.log('Sending registration data:', registrationData);
+
       let response;
       if (role === 'CHILD_WELFARE') {
         // Use child welfare specific endpoint
@@ -154,10 +148,13 @@ function Register() {
           employeeId: formData.employee_id,
           officeLocation: formData.office_location
         };
+        console.log('Sending child welfare data:', childWelfareData);
         response = await authService.registerChildWelfare(childWelfareData);
       } else {
         response = await authService.register(registrationData);
       }
+
+      console.log('Registration response:', response);
 
       if (response && response.success) {
         showSuccessToast("Registration successful! Please login with your credentials.");
@@ -168,64 +165,19 @@ function Register() {
     } catch (error) {
       console.error('Registration error:', error);
       
-      // If backend is not available, store in localStorage as fallback
-      if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error') || error.message.includes('ERR_CONNECTION_REFUSED')) {
-        console.log('Backend not available, using localStorage fallback');
-        
-        // Check for existing users in localStorage
-        const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-        
-        // Check for duplicate username or email
-        const duplicateUser = existingUsers.find(u => 
-          u.username === formData.username || u.email === formData.email
-        );
-        
-        if (duplicateUser) {
-          if (duplicateUser.username === formData.username) {
-            setErrors({ username: "Username already exists" });
-          } else {
-            setErrors({ email: "Email already exists" });
-          }
-          setLoading(false);
-          return;
-        }
-        
-        // Save user to localStorage
-        const newUser = {
-          id: Date.now(),
-          fullName: formData.full_name,
-          username: formData.username,
-          password: formData.password, // In real app, this would be hashed
-          email: formData.email,
-          phone: formData.phone,
-          role: role,
-          createdAt: new Date().toISOString(),
-          // Add role-specific data
-          ...(role === 'CHILD_WELFARE' && {
-            departmentName: formData.department_name,
-            employeeId: formData.employee_id,
-            officeLocation: formData.office_location
-          })
-        };
-        
-        existingUsers.push(newUser);
-        localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
-        
-        showSuccessToast("Registration successful! Please login with your credentials.");
-        navigate("/login");
-      } else {
-        // Handle other API errors
-        if (error.response?.data?.message) {
-          if (error.response.data.message.includes('Username already exists')) {
-            setErrors({ username: "Username already exists" });
-          } else if (error.response.data.message.includes('Email already exists')) {
-            setErrors({ email: "Email already exists" });
-          } else {
-            showErrorToast(error, "Registration failed. Please try again.");
-          }
+      // Handle API errors
+      if (error.response?.data?.message) {
+        if (error.response.data.message.includes('Username already exists')) {
+          setErrors({ username: "Username already exists" });
+        } else if (error.response.data.message.includes('Email already exists')) {
+          setErrors({ email: "Email already exists" });
         } else {
-          showErrorToast(error, "Registration failed. Please try again.");
+          showErrorToast(error, error.response.data.message);
         }
+      } else if (error.message) {
+        showErrorToast(null, error.message);
+      } else {
+        showErrorToast(null, "Registration failed. Please check your connection and try again.");
       }
     } finally {
       setLoading(false);
@@ -408,41 +360,7 @@ function Register() {
                         </div>
                       )}
 
-                      {role === "AGENCY" && (
-                        <div className="border-top pt-3 mt-3">
-                          <h6 className="text-muted mb-3">Agency Information</h6>
-                          <Input
-                            label="Agency Name"
-                            name="agency_name"
-                            value={formData.agency_name || ''}
-                            onChange={handleChange}
-                            error={errors.agency_name}
-                            placeholder="Official agency name"
-                            icon="building"
-                            required
-                          />
-                          <Input
-                            label="License Number"
-                            name="license_number"
-                            value={formData.license_number || ''}
-                            onChange={handleChange}
-                            error={errors.license_number}
-                            placeholder="Government license number"
-                            icon="certificate"
-                            required
-                          />
-                          <Input
-                            label="Office Address"
-                            name="address"
-                            value={formData.address || ''}
-                            onChange={handleChange}
-                            error={errors.address}
-                            placeholder="Complete office address"
-                            icon="map-marker-alt"
-                            required
-                          />
-                        </div>
-                      )}
+
 
                       {role === "STAFF" && (
                         <div className="border-top pt-3 mt-3">

@@ -80,39 +80,17 @@ function Login() {
     } catch (error) {
       console.error('Login error:', error);
       
-      // If backend is not available, check localStorage
-      if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error') || error.message.includes('ERR_CONNECTION_REFUSED')) {
-        console.log('Backend not available, checking localStorage');
-        
-        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-        const user = registeredUsers.find(u => 
-          u.username === formData.username && u.password === formData.password
-        );
-        
-        if (user) {
-          if (rememberMe) {
-            localStorage.setItem('rememberedUser', JSON.stringify({ username: formData.username }));
-          } else {
-            localStorage.removeItem('rememberedUser');
-          }
-          
-          // Store auth info for ProtectedRoute
-          localStorage.setItem('authToken', 'localStorage-token-' + Date.now());
-          localStorage.setItem('authUser', JSON.stringify({
-            username: user.username,
-            role: user.role,
-            fullName: user.fullName,
-            email: user.email
-          }));
-          
-          showSuccessToast(`Welcome back, ${user.fullName || user.username}!`);
-          navigate(ROLE_ROUTES[user.role] || "/");
-        } else {
-          setErrors({ general: "Invalid username or password" });
-        }
-      } else {
-        const errorMessage = showErrorToast(error, "Invalid username or password");
+      // Handle API errors
+      if (error.response?.data?.message) {
+        const errorMessage = error.response.data.message;
         setErrors({ general: errorMessage });
+        showErrorToast(null, errorMessage);
+      } else if (error.message) {
+        setErrors({ general: "Invalid username or password" });
+        showErrorToast(null, "Invalid username or password");
+      } else {
+        setErrors({ general: "Login failed. Please check your connection and try again." });
+        showErrorToast(null, "Login failed. Please check your connection and try again.");
       }
     } finally {
       setLoading(false);

@@ -1,5 +1,6 @@
 package com.backend.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,39 +22,42 @@ public class Document {
     
     @ManyToOne
     @JoinColumn(name = "parent_id", nullable = false)
+    @JsonIgnoreProperties({"documents", "applications", "user"})
     private Parent parent;
     
     @ManyToOne
     @JoinColumn(name = "application_id")
+    @JsonIgnoreProperties({"parent", "child", "documents"})
     private Application application;
     
     @Column(name = "parent_username", nullable = false)
     private String parentUsername;
     
-    @Column(name = "identity_proof")
+    @Column(name = "identity_proof", columnDefinition = "LONGTEXT")
     private String identityProof;
     
-    @Column(name = "address_proof")
+    @Column(name = "address_proof", columnDefinition = "LONGTEXT")
     private String addressProof;
     
-    @Column(name = "age_proof")
+    @Column(name = "age_proof", columnDefinition = "LONGTEXT")
     private String ageProof;
     
-    @Column(name = "income_proof")
+    @Column(name = "income_proof", columnDefinition = "LONGTEXT")
     private String incomeProof;
     
-    @Column(name = "marriage_proof")
+    @Column(name = "marriage_proof", columnDefinition = "LONGTEXT")
     private String marriageProof;
     
-    @Column(name = "medical_certificate")
+    @Column(name = "medical_certificate", columnDefinition = "LONGTEXT")
     private String medicalCertificate;
     
-    @Column(name = "police_verification")
+    @Column(name = "police_verification", columnDefinition = "LONGTEXT")
     private String policeVerification;
     
-    @Column(name = "police_clearance")
+    @Column(name = "police_clearance", columnDefinition = "LONGTEXT")
     private String policeClearance;
     
+    @Column(columnDefinition = "LONGTEXT")
     private String photographs;
     
     @Enumerated(EnumType.STRING)

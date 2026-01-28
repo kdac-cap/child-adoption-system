@@ -22,14 +22,9 @@ import StaffApplications from "./pages/staff/StaffApplications";
 import AddChild from "./pages/staff/AddChild";
 import DocumentReview from "./pages/staff/DocumentReview";
 
-// ---------- AGENCY ----------
-import AgencyDashboard from "./pages/agency/AgencyDashboard";
-import ChildrenList from "./pages/agency/ChildrenList";
-import Applications from "./pages/agency/Applications";
-
 //Admin
 import AdminLayout from "./pages/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminDashboard from "./pages/admin/IntegratedAdminDashboard";
 import Dashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
 import Children from "./pages/admin/Children";
@@ -178,31 +173,7 @@ function App() {
           }
         />
 
-        {/* ---------- AGENCY ROUTES ---------- */}
-        <Route
-          path="/agency"
-          element={
-            <ProtectedRoute allowedRoles={["AGENCY"]}>
-              <AgencyDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/agency/children"
-          element={
-            <ProtectedRoute allowedRoles={["AGENCY"]}>
-              <ChildrenList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/agency/applications"
-          element={
-            <ProtectedRoute allowedRoles={["AGENCY"]}>
-              <Applications />
-            </ProtectedRoute>
-          }
-        />
+
 
         {/* ---------- CHILD WELFARE ROUTES ---------- */}
         <Route

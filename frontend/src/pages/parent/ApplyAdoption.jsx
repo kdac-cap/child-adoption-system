@@ -5,6 +5,7 @@ import Navbar from "../../components/layout/Navbar";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import { validateForm, validationRules } from "../../utils/validators";
+import applicationService from "../../services/applicationService";
 
 function ApplyAdoption() {
   const location = useLocation();
@@ -80,86 +81,22 @@ function ApplyAdoption() {
 
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const authUser = JSON.parse(localStorage.getItem("authUser"));
-      const applications = JSON.parse(localStorage.getItem("applications")) || [];
-
-      const newApplication = {
-        id: Date.now(),
-        parentUsername: authUser.username,
-        parentName: authUser.name || authUser.username,
-        childId: child.id,
-        childName: child.name,
-        status: "PENDING_STAFF_APPROVAL",
-        submittedAt: new Date().toISOString(),
-        staffMessage: "",
-        applicationDetails: formData
-      };
-
-      applications.push(newApplication);
-      localStorage.setItem("applications", JSON.stringify(applications));
-
-      // Store for parent-specific applications
-      const parentApplications = JSON.parse(
-        localStorage.getItem(`applications_${authUser.username}`)
-      ) || [];
-      parentApplications.push(newApplication);
-      localStorage.setItem(
-        `applications_${authUser.username}`,
-        JSON.stringify(parentApplications)
-      );
-
-      // Add to adoptions for child welfare tracking
-      const adoptions = JSON.parse(localStorage.getItem("adoptions")) || [];
-      adoptions.push({
-        id: newApplication.id,
-        childId: child.id,
-        childName: child.name,
-        parentUsername: authUser.username,
-        parentName: authUser.name || authUser.username,
-        visitDate: null,
-        visitStatus: null,
-        remarks: null,
-        applicationDetails: formData
-      });
-      localStorage.setItem("adoptions", JSON.stringify(adoptions));
-
-      // Add notification for staff
-      const staffNotifications = JSON.parse(localStorage.getItem("staffNotifications")) || [];
-      staffNotifications.push({
-        id: Date.now(),
-        message: `New adoption application from ${authUser.name || authUser.username} for ${child.name}`,
-        type: "info",
-        read: false,
-        applicationId: newApplication.id,
-        timestamp: new Date().toISOString(),
-      });
-      localStorage.setItem("staffNotifications", JSON.stringify(staffNotifications));
-
-      // Add notification for parent
-      const parentNotifications = JSON.parse(
-        localStorage.getItem(`parentNotifications_${authUser.username}`)
-      ) || [];
-      parentNotifications.push({
-        id: Date.now(),
-        message: `Your adoption application for ${child.name} has been submitted and is under review`,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem(
-        `parentNotifications_${authUser.username}`,
-        JSON.stringify(parentNotifications)
-      );
-
-      toast.success('Adoption application submitted successfully! Staff will review your application.');
+    try {
+      const response = await applicationService.createApplication(child.id);
+      
+      toast.success('Application submitted successfully! Your application is under review.');
       navigate("/parent/applications");
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit application. Please try again.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const getChildImage = () => {
-    if (child.photo) return child.photo;
-    return child.gender === 'Male' ? '/Boys.jpg' : '/girls.jpg';
+    if (child.photo) return `http://localhost:8080${child.photo}`;
+    return child.gender === 'MALE' ? '/Boys.jpg' : '/girls.jpg';
   };
 
   return (
@@ -190,7 +127,7 @@ function ApplyAdoption() {
                       className="img-fluid rounded shadow-custom"
                       style={{ maxHeight: "250px", objectFit: "cover" }}
                       onError={(e) => {
-                        e.target.src = child.gender === 'Male' ? '/Boys.jpg' : '/girls.jpg';
+                        e.target.src = child.gender === 'MALE' ? '/Boys.jpg' : '/girls.jpg';
                       }}
                     />
                   </div>

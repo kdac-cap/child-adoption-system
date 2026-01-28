@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { toast } from 'react-toastify';
 import Navbar from "../../components/layout/Navbar";
 import Button from "../../components/common/Button";
 import Select from "../../components/common/Select";
+import childService from "../../services/childService";
 
 function BrowseChildren() {
   const navigate = useNavigate();
@@ -24,8 +26,8 @@ function BrowseChildren() {
   ];
 
   const genderOptions = [
-    { value: 'Male', label: 'Male' },
-    { value: 'Female', label: 'Female' }
+    { value: 'MALE', label: 'Male' },
+    { value: 'FEMALE', label: 'Female' }
   ];
 
   const healthStatusOptions = [
@@ -36,13 +38,22 @@ function BrowseChildren() {
   ];
 
   useEffect(() => {
-    // Load children from localStorage
-    const childrenData = JSON.parse(localStorage.getItem("childrenData")) || [];
-    const availableChildren = childrenData.filter(child => child.status === "AVAILABLE");
-    setChildren(availableChildren);
-    setFilteredChildren(availableChildren);
-    setLoading(false);
+    loadChildren();
   }, []);
+
+  const loadChildren = async () => {
+    try {
+      setLoading(true);
+      const data = await childService.getChildrenByStatus('AVAILABLE');
+      setChildren(data);
+      setFilteredChildren(data);
+    } catch (error) {
+      console.error('Error loading children:', error);
+      toast.error('Failed to load children');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Apply filters
@@ -80,8 +91,8 @@ function BrowseChildren() {
 
   const getChildImage = (child) => {
     // Use provided photo or default based on gender
-    if (child.photo) return child.photo;
-    return child.gender === 'Male' ? '/Boys.jpg' : '/girls.jpg';
+    if (child.photo) return `http://localhost:8080${child.photo}`;
+    return child.gender === 'MALE' ? '/Boys.jpg' : '/girls.jpg';
   };
 
   if (loading) {
@@ -203,7 +214,7 @@ function BrowseChildren() {
                       alt={child.name}
                       style={{ height: "250px", objectFit: "cover" }}
                       onError={(e) => {
-                        e.target.src = child.gender === 'Male' ? '/Boys.jpg' : '/girls.jpg';
+                        e.target.src = child.gender === 'MALE' ? '/Boys.jpg' : '/girls.jpg';
                       }}
                     />
                     <div className="position-absolute top-0 end-0 m-3">
@@ -223,8 +234,8 @@ function BrowseChildren() {
                           {child.age} years
                         </span>
                         <span className="badge status-matched">
-                          <i className={`fas fa-${child.gender === 'Male' ? 'mars' : 'venus'} me-1`}></i>
-                          {child.gender}
+                          <i className={`fas fa-${child.gender === 'MALE' ? 'mars' : 'venus'} me-1`}></i>
+                          {child.gender === 'MALE' ? 'Male' : 'Female'}
                         </span>
                       </div>
                     </div>

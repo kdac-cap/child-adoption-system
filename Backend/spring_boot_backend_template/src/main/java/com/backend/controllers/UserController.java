@@ -1,56 +1,91 @@
 package com.backend.controllers;
 
-import com.backend.daos.UserRepository;
+import com.backend.dto.ApiResponse;
 import com.backend.entities.User;
-import com.backend.entities.UserRole;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.backend.daos.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.stream.Collectors;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequiredArgsConstructor
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "http://localhost:5173"
+})
 public class UserController {
-    
-    @Autowired
-    private UserRepository userRepository;
-    
-    @GetMapping("/all")
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        return ResponseEntity.ok(users);
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @GetMapping("/profile")
+    public ResponseEntity<Map<String, Object>> getProfile() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("id", user.getId());
+        profile.put("username", user.getUsername());
+        profile.put("email", user.getEmail());
+        profile.put("fullName", user.getFullName());
+        profile.put("phone", user.getPhone());
+        profile.put("role", user.getRole().toString());
+        
+        return ResponseEntity.ok(profile);
     }
-    
-    @GetMapping("/chat-users/{userId}")
-    public ResponseEntity<List<User>> getChatUsers(@PathVariable Long userId) {
-        User currentUser = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    @PutMapping("/profile")
+    public ResponseEntity<ApiResponse> updateProfile(@RequestBody Map<String, String> updates) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
         
-        List<User> users;
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
         
-        if (currentUser.getRole() == UserRole.PARENT) {
-            users = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == UserRole.STAFF || u.getRole() == UserRole.ADMIN)
-                .collect(Collectors.toList());
-        } else if (currentUser.getRole() == UserRole.STAFF || currentUser.getRole() == UserRole.ADMIN) {
-            users = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == UserRole.PARENT)
-                .collect(Collectors.toList());
-        } else {
-            users = userRepository.findAll().stream()
-                .filter(u -> !u.getId().equals(userId))
-                .collect(Collectors.toList());
+        if (updates.containsKey("fullName")) {
+            user.setFullName(updates.get("fullName"));
+        }
+        if (updates.containsKey("email")) {
+            user.setEmail(updates.get("email"));
+        }
+        if (updates.containsKey("phone")) {
+            user.setPhone(updates.get("phone"));
         }
         
-        return ResponseEntity.ok(users);
+        userRepository.save(user);
+        
+        return ResponseEntity.ok(new ApiResponse("Profile updated successfully", true));
     }
-    
-    @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        User user = userRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(user);
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse> changePassword(@RequestBody Map<String, String> passwords) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        
+        String oldPassword = passwords.get("oldPassword");
+        String newPassword = passwords.get("newPassword");
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse("Old password is incorrect", false));
+        }
+        
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        
+        return ResponseEntity.ok(new ApiResponse("Password changed successfully", true));
     }
 }

@@ -1,13 +1,30 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { toast } from 'react-toastify';
 import Navbar from "../../components/layout/Navbar";
+import applicationService from "../../services/applicationService";
 
 function MyApplications() {
   const navigate = useNavigate();
-  const authUser = JSON.parse(localStorage.getItem("authUser"));
-  const applications = JSON.parse(localStorage.getItem("applications")) || [];
-  
-  // Filter applications for current user
-  const userApplications = applications.filter(app => app.parentUsername === authUser.username);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      const data = await applicationService.getMyApplications();
+      setApplications(data);
+    } catch (error) {
+      console.error('Error loading applications:', error);
+      toast.error('Failed to load applications');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -20,6 +37,22 @@ function MyApplications() {
     return statusConfig[status] || { class: "bg-secondary", text: status };
   };
 
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="container parent-dashboard-container">
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3 text-muted">Loading applications...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -28,7 +61,7 @@ function MyApplications() {
           📑 My Adoption Applications
         </h3>
 
-        {userApplications.length === 0 && (
+        {applications.length === 0 && (
           <div className="text-center">
             <div className="alert alert-info">
               <h5>No applications found</h5>
@@ -44,7 +77,7 @@ function MyApplications() {
         )}
 
         <div className="row">
-          {userApplications.map((app) => {
+          {applications.map((app) => {
             const statusInfo = getStatusBadge(app.status);
             return (
               <div key={app.id} className="col-lg-6 mb-4">

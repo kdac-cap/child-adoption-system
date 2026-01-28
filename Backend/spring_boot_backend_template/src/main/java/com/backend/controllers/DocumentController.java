@@ -3,24 +3,47 @@ package com.backend.controllers;
 import com.backend.dto.ApiResponse;
 import com.backend.entities.Document;
 import com.backend.entities.DocumentStatus;
+import com.backend.entities.Parent;
+import com.backend.entities.User;
+import com.backend.daos.UserRepository;
+import com.backend.daos.ParentRepository;
 import com.backend.services.DocumentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/documents")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@RequiredArgsConstructor
+@CrossOrigin(origins = {
+        "http://localhost:3000",
+        "http://localhost:5173"
+})
 public class DocumentController {
-    
-    @Autowired
-    private DocumentService documentService;
-    
-    @PostMapping
-    public ResponseEntity<ApiResponse> submitDocuments(@RequestBody Map<String, Object> request) {
-        Long parentId = Long.valueOf(request.get("parentId").toString());
+
+    private final DocumentService documentService;
+    private final UserRepository userRepository;
+    private final ParentRepository parentRepository;
+
+    @PostMapping("/submit")
+    public ResponseEntity<ApiResponse> submitDocuments(
+            @RequestBody Map<String, Object> request) {
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Parent parent = parentRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Parent not found"));
+        
+        Long parentId = parent.getId();
         Long applicationId = Long.valueOf(request.get("applicationId").toString());
         
         Document document = new Document();
@@ -35,27 +58,45 @@ public class DocumentController {
         document.setPhotographs((String) request.get("photographs"));
         
         Document saved = documentService.submitDocuments(parentId, applicationId, document);
-        return ResponseEntity.ok(new ApiResponse("Documents submitted successfully", true, saved));
+        return ResponseEntity.ok(new ApiResponse(true, "Documents submitted successfully", saved));
     }
-    
+
+    @PostMapping("/upload")
+    public ResponseEntity<Document> uploadDocument(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("applicationId") Long applicationId,
+            @RequestParam("documentType") String documentType) {
+        
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Document document = documentService.uploadDocument(file, applicationId, documentType, user.getId());
+        return ResponseEntity.ok(document);
+    }
+
+    @GetMapping("/my-documents")
+    public ResponseEntity<List<Document>> getMyDocuments() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        List<Document> documents = documentService.getDocumentsByUser(user.getId());
+        return ResponseEntity.ok(documents);
+    }
+
+    @GetMapping("/application/{applicationId}")
+    public ResponseEntity<Document> getDocumentByApplicationId(@PathVariable Long applicationId) {
+        Document document = documentService.getDocumentByApplicationId(applicationId);
+        return ResponseEntity.ok(document);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Document> getDocumentById(@PathVariable Long id) {
-        return ResponseEntity.ok(documentService.getDocumentById(id));
-    }
-    
-    @GetMapping("/application/{applicationId}")
-    public ResponseEntity<Document> getDocumentByApplication(@PathVariable Long applicationId) {
-        return ResponseEntity.ok(documentService.getDocumentByApplicationId(applicationId));
-    }
-    
-    @GetMapping("/parent/{parentId}")
-    public ResponseEntity<List<Document>> getDocumentsByParent(@PathVariable Long parentId) {
-        return ResponseEntity.ok(documentService.getDocumentsByParentId(parentId));
-    }
-    
-    @GetMapping
-    public ResponseEntity<List<Document>> getAllDocuments() {
-        return ResponseEntity.ok(documentService.getAllDocuments());
+        Document document = documentService.getDocumentById(id);
+        return ResponseEntity.ok(document);
     }
     
     @PutMapping("/{id}/verify")
@@ -65,6 +106,6 @@ public class DocumentController {
         DocumentStatus status = DocumentStatus.valueOf(request.get("status"));
         String comments = request.get("comments");
         Document updated = documentService.verifyDocuments(id, status, comments);
-        return ResponseEntity.ok(new ApiResponse("Documents verified", true, updated));
+        return ResponseEntity.ok(new ApiResponse(true, "Document status updated", updated));
     }
 }

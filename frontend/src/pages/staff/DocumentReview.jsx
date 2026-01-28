@@ -55,6 +55,7 @@ function DocumentReview() {
       // Try to fetch from backend first
       try {
         const appDocs = await documentService.getDocumentByApplication(app.id);
+        console.log('Documents received from backend:', appDocs);
         if (appDocs) {
           setDocuments(appDocs);
           return;
@@ -66,6 +67,7 @@ function DocumentReview() {
       // Fallback to localStorage if backend fails
       const allDocs = JSON.parse(localStorage.getItem("documents")) || [];
       const appDocs = allDocs.find(doc => doc.applicationId === app.id);
+      console.log('Documents from localStorage:', appDocs);
       if (appDocs) {
         setDocuments(appDocs);
       } else {
@@ -182,13 +184,12 @@ function DocumentReview() {
   };
 
   const documentTypes = [
-    { key: "identityProof", label: "Identity Proof" },
-    { key: "addressProof", label: "Address Proof" },
-    { key: "ageProof", label: "Age Proof" },
-    { key: "incomeProof", label: "Income Proof" },
-    { key: "marriageProof", label: "Marriage Proof" },
-    { key: "medicalCertificate", label: "Medical Certificate" },
-    { key: "policeVerification", label: "Police Verification" },
+    { key: "identityProof", label: "Identity Proof*" },
+    { key: "ageProof", label: "Age Proof*" },
+    { key: "incomeProof", label: "Income & Financial Proof*" },
+    { key: "marriageProof", label: "Marriage / Relationship Proof" },
+    { key: "medicalCertificate", label: "Medical Fitness Certificate" },
+    { key: "policeClearance", label: "Police Clearance Certificate (PCC)" },
     { key: "photographs", label: "Photographs" }
   ];
 
@@ -257,32 +258,36 @@ function DocumentReview() {
                 <>
                   <div className="row mb-4">
                     {documentTypes.map(docType => (
-                      documents[docType.key] && (
-                        <div key={docType.key} className="col-md-6 mb-3">
-                          <div className="border p-3 rounded">
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                              <strong>{docType.label}</strong>
-                              {(documents.status === 'VERIFIED' || documents.status === 'APPROVED') && (
+                      <div key={docType.key} className="col-md-6 mb-3">
+                        <div className="border p-3 rounded">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <strong>{docType.label}</strong>
+                            {documents[docType.key] ? (
+                              (documents.status === 'VERIFIED' || documents.status === 'APPROVED') ? (
                                 <span className="badge bg-success">✓ Verified</span>
-                              )}
-                              {documents.status === 'REJECTED' && (
+                              ) : documents.status === 'REJECTED' ? (
                                 <span className="badge bg-danger">✗ Rejected</span>
-                              )}
-                              {(documents.status === 'PENDING' || documents.status === 'SUBMITTED' || !documents.status) && (
+                              ) : (
                                 <span className="badge bg-warning">⏳ Pending</span>
-                              )}
-                            </div>
-                            <div className="d-flex gap-2">
+                              )
+                            ) : (
+                              <span className="badge bg-secondary">Not Submitted</span>
+                            )}
+                          </div>
+                          <div className="d-flex gap-2">
+                            {documents[docType.key] ? (
                               <button 
                                 className="btn btn-sm btn-outline-primary" 
                                 onClick={() => openDocument(docType.label, documents[docType.key], docType.key)}
                               >
                                 Open Document
                               </button>
-                            </div>
+                            ) : (
+                              <span className="text-muted small">No document uploaded</span>
+                            )}
                           </div>
                         </div>
-                      )
+                      </div>
                     ))}
                   </div>
 
