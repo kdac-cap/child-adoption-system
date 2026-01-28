@@ -96,7 +96,3 @@ The system enforces a strict logical flow to ensure no legal steps are skipped:
 * [ ] **Video Integration:** Built-in video calling for virtual preliminary interviews.
 
 ---
-
-**Developed with ❤️ to help every child find a home.**
-
-Would you like me to also provide a **sample JSON structure** for the API responses to include in your technical documentation?
