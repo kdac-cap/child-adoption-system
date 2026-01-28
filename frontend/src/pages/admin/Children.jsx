@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getData } from "../../utils/localStorageAPI";
+import { adminAPI } from "../../services/api";
 
 const Children = () => {
   const [children, setChildren] = useState([]);
@@ -7,16 +7,20 @@ const Children = () => {
   const [filterGender, setFilterGender] = useState("all");
 
   useEffect(() => {
-    setLoading(true);
-    try {
-      const data = getData("children") || [];
-      setChildren(data);
-    } catch (error) {
-      console.error("Error loading children:", error);
-      setChildren([]);
-    } finally {
-      setLoading(false);
-    }
+    const fetchChildren = async () => {
+      setLoading(true);
+      try {
+        const response = await adminAPI.getAllChildren();
+        setChildren(response.data || []);
+      } catch (error) {
+        console.error("Error loading children:", error);
+        setChildren([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchChildren();
   }, []);
 
   const filteredChildren = children.filter(
@@ -66,7 +70,7 @@ const Children = () => {
                 <th>Name</th>
                 <th>Age</th>
                 <th>Gender</th>
-                <th>Medical Status</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -82,10 +86,10 @@ const Children = () => {
                     <td>
                       <span
                         className={`badge bg-${
-                          c.medical === "Healthy" ? "success" : "warning"
+                          c.status === "AVAILABLE" ? "success" : c.status === "ADOPTED" ? "primary" : "secondary"
                         }`}
                       >
-                        {c.medical}
+                        {c.status}
                       </span>
                     </td>
                   </tr>

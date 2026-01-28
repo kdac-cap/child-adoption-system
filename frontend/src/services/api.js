@@ -11,19 +11,25 @@ const api = axios.create({
 
 // Request interceptor to add JWT token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') || localStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log('API Request:', config.method.toUpperCase(), config.url, 'Token:', token ? 'Present' : 'Missing');
   return config;
 });
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.config.url, 'Status:', response.status);
+    return response;
+  },
   (error) => {
+    console.error('API Error:', error.config?.url, 'Status:', error.response?.status, 'Message:', error.response?.data);
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -81,7 +87,7 @@ export const dashboardAPI = {
 
 // 7. Admin APIs (existing)
 export const adminAPI = {
-  getStats: () => api.get('/admin/stats'),
+  getStats: () => api.get('/admin/dashboard-stats'),
   getAllUsers: () => api.get('/admin/users'),
   getAllChildren: () => api.get('/admin/children'),
   getAllApplications: () => api.get('/admin/applications'),
@@ -99,16 +105,16 @@ export const staffAPI = {
   rejectDocument: (docId, reason) => api.put(`/staff/documents/${docId}/reject`, { reason }),
 };
 
-// 9. Child Welfare APIs (existing)
-export const childWelfareAPI = {
-  getApplications: () => api.get('/child-welfare/applications'),
-  scheduleVisit: (appId, visitData) => api.post(`/child-welfare/applications/${appId}/visits`, visitData),
-  completeVisit: (visitId, report) => api.put(`/child-welfare/visits/${visitId}/complete`, report),
-  approveApplication: (appId, comments) => api.put(`/child-welfare/applications/${appId}/approve`, { comments }),
-  rejectApplication: (appId, comments) => api.put(`/child-welfare/applications/${appId}/reject`, { comments }),
+// 9. Child Welfare APIs
+export const welfareAPI = {
+  getPendingVisits: () => api.get('/welfare/pending-visits'),
+  getScheduledVisits: () => api.get('/welfare/scheduled-visits'),
+  scheduleVisit: (appId, message) => api.put(`/welfare/${appId}/schedule-visit`, { message }),
+  completeVisit: (appId, message) => api.put(`/welfare/${appId}/complete-visit`, { message }),
+  approveWelfare: (appId, message) => api.put(`/welfare/${appId}/approve-welfare`, { message }),
 };
 
-// 10. Parent APIs (existing)
+// 10. Parent APIs
 export const parentAPI = {
   submitApplication: (data) => api.post('/parent/applications', data),
   uploadDocument: (appId, formData) => api.post(`/parent/applications/${appId}/documents`, formData, {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { getData } from "../../utils/localStorageAPI";
+import { adminAPI } from "../../services/api";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -8,22 +8,26 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    setLoading(true);
-    try {
-      const userData = getData("users") || [];
-      setUsers(userData);
-    } catch (error) {
-      console.error("Error loading users:", error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await adminAPI.getAllUsers();
+        setUsers(response.data || []);
+      } catch (error) {
+        console.error("Error loading users:", error);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUsers();
   }, []);
 
   const filteredUsers = users.filter(
     (u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (u.fullName || u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -62,7 +66,7 @@ const Users = () => {
                 <th>Name</th>
                 <th className="d-none d-md-table-cell">Email</th>
                 <th className="d-none d-lg-table-cell">Phone</th>
-                <th className="d-none d-xl-table-cell">City</th>
+                <th className="d-none d-xl-table-cell">Role</th>
               </tr>
             </thead>
             <tbody>
@@ -70,10 +74,12 @@ const Users = () => {
                 filteredUsers.map((u) => (
                   <tr key={u.id}>
                     <td className="fw-bold d-none d-sm-table-cell">{u.id}</td>
-                    <td className="fw-5">{u.name}</td>
+                    <td className="fw-5">{u.fullName || u.name}</td>
                     <td className="d-none d-md-table-cell small">{u.email}</td>
-                    <td className="d-none d-lg-table-cell small">{u.phone}</td>
-                    <td className="d-none d-xl-table-cell small">{u.city}</td>
+                    <td className="d-none d-lg-table-cell small">{u.phone || 'N/A'}</td>
+                    <td className="d-none d-xl-table-cell small">
+                      <span className="badge bg-info">{u.role}</span>
+                    </td>
                   </tr>
                 ))
               ) : (

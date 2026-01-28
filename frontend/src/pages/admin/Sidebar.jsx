@@ -9,10 +9,9 @@ import {
   FaCog,
   FaSignOutAlt,
   FaBars,
-  FaBuilding,
-  FaHistory,
+  FaHome,
 } from "react-icons/fa";
-import { getData } from "../../utils/localStorageAPI";
+import { adminAPI } from "../../services/api";
 
 const Sidebar = ({ isMobile = false }) => {
   const navigate = useNavigate();
@@ -23,13 +22,10 @@ const Sidebar = ({ isMobile = false }) => {
      LIVE PENDING REQUEST COUNT (AUTO UPDATES)
   -------------------------------------------------- */
   useEffect(() => {
-    const updatePendingCount = () => {
+    const updatePendingCount = async () => {
       try {
-        const adoptions = getData("adoptions") || [];
-        const pending = adoptions.filter(
-          (req) => req.status === "Pending"
-        ).length;
-        setPendingCount(pending);
+        const response = await adminAPI.getStats();
+        setPendingCount(response.data.pendingApplications || 0);
       } catch (error) {
         console.error("Error updating pending count:", error);
       }
@@ -37,11 +33,9 @@ const Sidebar = ({ isMobile = false }) => {
 
     updatePendingCount();
     const interval = setInterval(updatePendingCount, 5000); // Update every 5 seconds
-    window.addEventListener("storage", updatePendingCount);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener("storage", updatePendingCount);
     };
   }, []);
 
@@ -159,19 +153,11 @@ const Sidebar = ({ isMobile = false }) => {
           </NavLink>
         </li>
 
-        {/* Agencies */}
+        {/* Child Welfare Department */}
         <li className="nav-item">
-          <NavLink to="/admin/agencies" className={navItemClass} title="Agencies">
-            <FaBuilding className="me-2 fs-5" />
-            {!collapsed && <span>Agencies</span>}
-          </NavLink>
-        </li>
-
-        {/* Audit Logs */}
-        <li className="nav-item">
-          <NavLink to="/admin/audit-logs" className={navItemClass} title="Audit Logs">
-            <FaHistory className="me-2 fs-5" />
-            {!collapsed && <span>Audit Logs</span>}
+          <NavLink to="/admin/welfare" className={navItemClass} title="Child Welfare Department">
+            <FaHome className="me-2 fs-5" />
+            {!collapsed && <span>Welfare Dept</span>}
           </NavLink>
         </li>
 

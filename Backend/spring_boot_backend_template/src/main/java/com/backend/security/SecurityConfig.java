@@ -53,6 +53,7 @@ public class SecurityConfig {
                     "/api/auth/login",
                     "/api/auth/register",
                     "/api/auth/register/child-welfare",
+                    "/api/init/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",
@@ -65,7 +66,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/agency/**").hasRole("AGENCY")
                 .requestMatchers("/api/staff/**").hasRole("STAFF")
                 .requestMatchers("/staff/**").hasRole("STAFF")
-                .requestMatchers("/api/welfare/**").hasRole("CHILD_WELFARE")
+                .requestMatchers("/api/welfare/**").hasAnyRole("ADMIN", "CHILD_WELFARE")
 
                 .anyRequest().authenticated()
             )

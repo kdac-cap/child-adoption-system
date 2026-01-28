@@ -1,131 +1,136 @@
 package com.backend.controllers;
 
-import com.backend.dto.ApiResponse;
+import com.backend.daos.*;
 import com.backend.entities.*;
-import com.backend.services.AdminService;
-import com.backend.services.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 public class AdminController {
+
+    @Autowired
+    private UserRepository userRepository;
     
     @Autowired
-    private AdminService adminService;
+    private ChildRepository childRepository;
     
     @Autowired
-    private AuditLogService auditLogService;
+    private ApplicationRepository applicationRepository;
     
-    // User Management
-    @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(adminService.getAllUsers());
-    }
-    
-    @GetMapping("/users/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok(adminService.getUserById(id));
-    }
-    
-    @PutMapping("/users/{id}/role")
-    public ResponseEntity<ApiResponse> updateUserRole(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
-        UserRole role = UserRole.valueOf(request.get("role"));
-        User updated = adminService.updateUserRole(id, role);
-        return ResponseEntity.ok(new ApiResponse(true, "User role updated", updated));
-    }
-    
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<ApiResponse> deleteUser(@PathVariable Long id) {
-        adminService.deleteUser(id);
-        return ResponseEntity.ok(new ApiResponse("User deleted", true));
-    }
-    
-    // Application Management
-    @GetMapping("/applications")
-    public ResponseEntity<List<Application>> getAllApplications() {
-        return ResponseEntity.ok(adminService.getAllApplicationsForAdmin());
-    }
-    
-    @PutMapping("/applications/{id}/approve")
-    public ResponseEntity<ApiResponse> approveApplication(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
-        String message = request.getOrDefault("message", "Application approved");
-        Application approved = adminService.approveApplication(id, message);
-        return ResponseEntity.ok(new ApiResponse(true, "Application approved", approved));
-    }
-    
-    @PutMapping("/applications/{id}/reject")
-    public ResponseEntity<ApiResponse> rejectApplication(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
-        String message = request.getOrDefault("message", "Application rejected");
-        Application rejected = adminService.rejectApplication(id, message);
-        return ResponseEntity.ok(new ApiResponse(true, "Application rejected", rejected));
-    }
-    
-    // Welfare Review
-    @PutMapping("/applications/{id}/welfare-review")
-    public ResponseEntity<ApiResponse> requestWelfareReview(@PathVariable Long id) {
-        Application updated = adminService.requestWelfareReview(id);
-        return ResponseEntity.ok(new ApiResponse(true, "Welfare review requested", updated));
-    }
-    
-    @PutMapping("/applications/{id}/welfare-approve")
-    public ResponseEntity<ApiResponse> approveWelfareReview(
-            @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
-        String comments = request.getOrDefault("comments", "Welfare review approved");
-        Application approved = adminService.approveWelfareReview(id, comments);
-        return ResponseEntity.ok(new ApiResponse(true, "Welfare review approved", approved));
-    }
-    
-    // Document Management
-    @GetMapping("/documents")
-    public ResponseEntity<List<Document>> getAllDocuments() {
-        return ResponseEntity.ok(adminService.getAllDocumentsForAdmin());
-    }
-    
-    // Child Management
-    @GetMapping("/children")
-    public ResponseEntity<List<Child>> getAllChildren() {
-        return ResponseEntity.ok(adminService.getAllChildrenForAdmin());
-    }
-    
-    // Statistics
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Long>> getStatistics() {
-        Map<String, Long> stats = Map.of(
-            "totalUsers", adminService.getTotalUsers(),
-            "totalApplications", adminService.getTotalApplications(),
-            "totalChildren", adminService.getTotalChildren(),
-            "pendingApplications", adminService.getPendingApplications()
-        );
+    @Autowired
+    private DocumentRepository documentRepository;
+
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        long totalUsers = userRepository.count();
+        long totalChildren = childRepository.count();
+        long pendingApplications = applicationRepository.countByStatus(ApplicationStatus.PENDING_STAFF_APPROVAL);
+        long approvedApplications = applicationRepository.countByStatus(ApplicationStatus.APPROVED);
+        long rejectedApplications = applicationRepository.countByStatus(ApplicationStatus.REJECTED);
+        long totalDocuments = documentRepository.count();
+        
+        stats.put("totalUsers", totalUsers);
+        stats.put("totalChildren", totalChildren);
+        stats.put("pendingApplications", pendingApplications);
+        stats.put("approvedApplications", approvedApplications);
+        stats.put("rejectedApplications", rejectedApplications);
+        stats.put("totalDocuments", totalDocuments);
+        
         return ResponseEntity.ok(stats);
     }
-    
-    // Audit Logs
-    @GetMapping("/audit-logs")
-    public ResponseEntity<List<AuditLog>> getAuditLogs() {
-        return ResponseEntity.ok(auditLogService.getAllAuditLogs());
+
+    @GetMapping("/applications")
+    public ResponseEntity<List<Map<String, Object>>> getAllApplications() {
+        List<Application> applications = applicationRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (Application app : applications) {
+            Map<String, Object> appData = new HashMap<>();
+            appData.put("id", app.getId());
+            appData.put("status", app.getStatus().toString());
+            appData.put("submissionDate", app.getSubmittedAt());
+            
+            // Parent data
+            Map<String, Object> parentData = new HashMap<>();
+            parentData.put("fullName", app.getParent().getUser().getFullName());
+            parentData.put("email", app.getParent().getUser().getEmail());
+            appData.put("parent", parentData);
+            
+            // Child data
+            Map<String, Object> childData = new HashMap<>();
+            childData.put("name", app.getChild().getName());
+            childData.put("age", app.getChild().getAge());
+            appData.put("child", childData);
+            
+            // Documents count (placeholder)
+            appData.put("documents", new ArrayList<>());
+            
+            result.add(appData);
+        }
+        
+        return ResponseEntity.ok(result);
     }
-    
-    @GetMapping("/audit-logs/user/{userId}")
-    public ResponseEntity<List<AuditLog>> getAuditLogsByUser(@PathVariable Long userId) {
-        return ResponseEntity.ok(auditLogService.getAuditLogsByUser(userId));
+
+    @PutMapping("/applications/{id}/status")
+    public ResponseEntity<Map<String, Object>> updateApplicationStatus(
+            @PathVariable Long id, 
+            @RequestBody Map<String, String> request) {
+        
+        Application application = applicationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Application not found"));
+        
+        ApplicationStatus status = ApplicationStatus.valueOf(request.get("status"));
+        application.setStatus(status);
+        applicationRepository.save(application);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Application status updated successfully");
+        
+        return ResponseEntity.ok(response);
     }
-    
-    @GetMapping("/audit-logs/entity/{entityType}/{entityId}")
-    public ResponseEntity<List<AuditLog>> getAuditLogsByEntity(
-            @PathVariable String entityType,
-            @PathVariable Long entityId) {
-        return ResponseEntity.ok(auditLogService.getAuditLogsByEntity(entityType, entityId));
+
+    @GetMapping("/users")
+    public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (User user : users) {
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", user.getId());
+            userData.put("username", user.getUsername());
+            userData.put("fullName", user.getFullName());
+            userData.put("email", user.getEmail());
+            userData.put("phone", user.getPhone());
+            userData.put("role", user.getRole().toString());
+            result.add(userData);
+        }
+        
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/children")
+    public ResponseEntity<List<Map<String, Object>>> getAllChildren() {
+        List<Child> children = childRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (Child child : children) {
+            Map<String, Object> childData = new HashMap<>();
+            childData.put("id", child.getId());
+            childData.put("name", child.getName());
+            childData.put("age", child.getAge());
+            childData.put("gender", child.getGender());
+            childData.put("healthReport", child.getHealthReport());
+            childData.put("status", child.getStatus());
+            result.add(childData);
+        }
+        
+        return ResponseEntity.ok(result);
     }
 }

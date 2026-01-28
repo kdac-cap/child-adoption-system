@@ -24,12 +24,19 @@ function AdminDashboard() {
 
   const fetchData = async () => {
     try {
+      console.log('Fetching admin dashboard data...');
+      
       const [statsRes, usersRes, appsRes, childrenRes] = await Promise.all([
         adminAPI.getStats(),
         adminAPI.getAllUsers(),
         adminAPI.getAllApplications(),
         adminAPI.getAllChildren()
       ]);
+
+      console.log('Stats:', statsRes.data);
+      console.log('Users:', usersRes.data);
+      console.log('Applications:', appsRes.data);
+      console.log('Children:', childrenRes.data);
 
       setStats(statsRes.data);
       setUsers(usersRes.data);
@@ -43,14 +50,18 @@ function AdminDashboard() {
         return acc;
       }, {});
 
+      console.log('Status counts:', statusCounts);
+
       const distribution = Object.entries(statusCounts).map(([status, count]) => ({
         name: status === 'AVAILABLE' ? 'Available for Adoption' : status === 'ADOPTED' ? 'Adopted' : status,
         value: count
       }));
 
+      console.log('Distribution:', distribution);
       setAdoptionDistribution(distribution);
     } catch (error) {
       console.error('Error fetching data:', error);
+      console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
     }

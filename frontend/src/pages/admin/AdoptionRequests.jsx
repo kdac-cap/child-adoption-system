@@ -1,49 +1,58 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { getData, saveData } from "../../utils/localStorageAPI";
+import { adminAPI } from "../../services/api";
 
 const AdoptionRequests = () => {
   const [requests, setRequests] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
-    setLoading(true);
-    try {
-      setRequests(getData("adoptions") || []);
-      setUsers(getData("users") || []);
-      setChildren(getData("children") || []);
-    } catch (error) {
-      console.error("Error loading adoption requests:", error);
-    } finally {
-      setLoading(false);
-    }
+    const fetchRequests = async () => {
+      setLoading(true);
+      try {
+        const response = await adminAPI.getAllApplications();
+        setRequests(response.data || []);
+      } catch (error) {
+        console.error("Error loading adoption requests:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRequests();
   }, []);
-
-  const getUserName = (id) => users.find((u) => u.id === id)?.name || "Unknown";
-  const getChildName = (id) => children.find((c) => c.id === id)?.name || "Unknown";
 
   const filteredRequests = requests.filter(
     (r) => filterStatus === "all" || r.status === filterStatus
   );
 
-  const handleUpdateStatus = (id, status) => {
+  const handleUpdateStatus = async (id, status) => {
     if (!window.confirm(`Confirm ${status}?`)) return;
 
-    const updated = requests.map((r) =>
-      r.id === id ? { ...r, status } : r
-    );
-    setRequests(updated);
-    saveData("adoptions", updated);
+    try {
+      if (status === "Approved") {
+        await adminAPI.approveApplication(id);
+      } else if (status === "Rejected") {
+        await adminAPI.rejectApplication(id);
+      }
+      // Refresh data
+      const response = await adminAPI.getAllApplications();
+      setRequests(response.data || []);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update status");
+    }
   };
 
   const getStatusBadge = (status) => {
-    const s = status?.trim().toLowerCase();
-    if (s === "approved") return "bg-success";
-    if (s === "pending") return "bg-warning text-dark";
-    if (s === "rejected") return "bg-danger";
+    const s = status?.trim().toUpperCase();
+    if (s === "APPROVED") return "bg-success";
+    if (s === "PENDING" || s === "PENDING_STAFF_APPROVAL") return "bg-warning text-dark";
+    if (s === "REJECTED") return "bg-danger";
+    if (s === "DOCUMENTS_REQUESTED") return "bg-info";
+    if (s === "DOCUMENTS_SUBMITTED") return "bg-primary";
+    if (s === "DOCUMENTS_VERIFIED") return "bg-success";
     return "bg-secondary";
   };
 
@@ -71,9 +80,12 @@ const AdoptionRequests = () => {
           onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="all">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
+          <option value="PENDING_STAFF_APPROVAL">Pending</option>
+          <option value="DOCUMENTS_REQUESTED">Documents Requested</option>
+          <option value="DOCUMENTS_SUBMITTED">Documents Submitted</option>
+          <option value="DOCUMENTS_VERIFIED">Documents Verified</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
         </select>
       </div>
 
@@ -95,24 +107,31 @@ const AdoptionRequests = () => {
                 filteredRequests.map((r) => (
                   <tr key={r.id}>
                     <td className="fw-bold">{r.id}</td>
-                    <td>{getUserName(r.userId)}</td>
-                    <td>{getChildName(r.childId)}</td>
-                    <td>{new Date(r.date).toLocaleDateString()}</td>
+                    <td>
+                      <div>
+                        <strong>{r.parent?.fullName || r.parentName || 'N/A'}</strong>
+                        <br />
+                        <small className="text-muted">{r.parent?.email || ''}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        <strong>{r.child?.name || r.childName || 'N/A'}</strong>
+                        <br />
+                        <small className="text-muted">
+                          {r.child?.age ? `${r.child.age} years` : ''}
+                        </small>
+                      </div>
+                    </td>
+                    <td>{r.submittedAt ? new Date(r.submittedAt).toLocaleDateString() : 'N/A'}</td>
                     <td>
                       <span className={`badge ${getStatusBadge(r.status)}`}>
                         {r.status}
                       </span>
                     </td>
                     <td>
-                      {r.status === "Pending" && (
+                      {(r.status === "PENDING_STAFF_APPROVAL" || r.status === "DOCUMENTS_VERIFIED") && (
                         <div className="btn-group btn-group-sm" role="group">
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => setSelectedRequest(r)}
-                            title="View details"
-                          >
-                            👁 View
-                          </button>
                           <button
                             className="btn btn-success btn-sm"
                             onClick={() => handleUpdateStatus(r.id, "Approved")}
@@ -129,7 +148,7 @@ const AdoptionRequests = () => {
                           </button>
                         </div>
                       )}
-                      {r.status !== "Pending" && (
+                      {r.status !== "PENDING_STAFF_APPROVAL" && r.status !== "DOCUMENTS_VERIFIED" && (
                         <span className="text-muted small">Processed</span>
                       )}
                     </td>

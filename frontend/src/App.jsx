@@ -29,6 +29,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
 import Children from "./pages/admin/Children";
 import AdoptionRequests from "./pages/admin/AdoptionRequests";
+import WelfareDepartment from "./pages/admin/WelfareDepartment";
 import Settings from "./pages/admin/Settings";
 import Agency from "./pages/admin/Agency";
 // ---------- COMMON ----------
@@ -200,6 +201,7 @@ function App() {
           <Route path="users" element={<Users />} />
           <Route path="children" element={<Children />} />
           <Route path="requests" element={<AdoptionRequests />} />
+          <Route path="welfare" element={<WelfareDepartment />} />
           <Route path="settings" element={<Settings />} />
           <Route path="agencies" element={<Agency />} />
 
