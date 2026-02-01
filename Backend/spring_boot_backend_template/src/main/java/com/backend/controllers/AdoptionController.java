@@ -20,7 +20,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = {
         "http://localhost:3000",
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "https://child-adoption-portal.netlify.app/"
 })
 public class AdoptionController {
 
