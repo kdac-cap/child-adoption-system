@@ -2,8 +2,7 @@
 
 A robust full-stack solution designed to digitize and simplify the adoption process, ensuring transparency between parents, agencies, and welfare departments.
 
-**🌐 Live Demo:** [https://child-adoption-portal-system.netlify.app/](https://child-adoption-portal-system.netlify.app/)
-
+**🌐 Live Demo:** https://child-adoption-portal.netlify.app/
 ---
 
 ## 📖 Project Overview
